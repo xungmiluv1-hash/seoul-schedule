@@ -765,17 +765,32 @@ function disableCloud(){
   cloudConfig={url:'',key:''};cloudReady=false;
   updateCloudStatus('로컬 저장만 사용합니다.');
 }
-function cloudHeaders(extra={}){
+function cloudHeaders(extra={},mode='auto'){
   const headers={
     apikey:cloudConfig.key,
     'Content-Type':'application/json',
     ...extra
   };
-  if(cloudConfig.key.startsWith('eyJ'))headers.Authorization=`Bearer ${cloudConfig.key}`;
+  if(mode==='auth'||(mode==='auto'&&cloudConfig.key.startsWith('eyJ')))headers.Authorization=`Bearer ${cloudConfig.key}`;
   return headers;
 }
 function cloudEndpoint(){
   return`${cloudConfig.url.replace(/\/+$/,'')}/rest/v1/seoul_schedule_state`;
+}
+async function cloudFetch(url,options={}){
+  const extra=options.headerExtra||{};
+  const first={...options,headers:cloudHeaders(extra,'auto')};
+  delete first.headerExtra;
+  let res=await fetch(url,first);
+  if(res.ok||cloudConfig.key.startsWith('eyJ'))return res;
+  const retry={...options,headers:cloudHeaders(extra,'auth')};
+  delete retry.headerExtra;
+  res=await fetch(url,retry);
+  return res;
+}
+async function cloudErrorText(res){
+  const txt=await res.text();
+  return `HTTP ${res.status}: ${txt || res.statusText || 'Supabase error'}`;
 }
 function cloudPayload(){
   return{
@@ -810,8 +825,8 @@ async function pullCloudState({silent=false}={}){
   if(!cloudReady)return;
   updateCloudStatus('클라우드 데이터 불러오는 중...');
   try{
-    const res=await fetch(`${cloudEndpoint()}?id=eq.global&select=data,updated_at`,{headers:cloudHeaders()});
-    if(!res.ok)throw new Error(await res.text());
+    const res=await cloudFetch(`${cloudEndpoint()}?id=eq.global&select=data,updated_at`);
+    if(!res.ok)throw new Error(await cloudErrorText(res));
     const rows=await res.json();
     if(rows?.[0]?.data){
       applyCloudData(rows[0].data);
@@ -821,8 +836,9 @@ async function pullCloudState({silent=false}={}){
       updateCloudStatus('클라우드에 초기 데이터를 생성했습니다.');
     }
   }catch(e){
-    updateCloudStatus('클라우드 불러오기 실패: Supabase URL, anon key, 테이블 설정을 확인하세요.',true);
-    if(!silent)alert('클라우드 불러오기 실패\nSupabase 설정을 확인하세요.');
+    const msg=`클라우드 불러오기 실패: ${e.message||'Supabase 설정을 확인하세요.'}`;
+    updateCloudStatus(msg,true);
+    if(!silent)alert(msg);
   }
 }
 async function pushCloudState({silent=false}={}){
@@ -830,16 +846,17 @@ async function pushCloudState({silent=false}={}){
   cloudSaving=true;
   updateCloudStatus('클라우드 저장 중...');
   try{
-    const res=await fetch(cloudEndpoint(),{
+    const res=await cloudFetch(cloudEndpoint(),{
       method:'POST',
-      headers:cloudHeaders({Prefer:'resolution=merge-duplicates'}),
+      headerExtra:{Prefer:'resolution=merge-duplicates'},
       body:JSON.stringify(cloudPayload())
     });
-    if(!res.ok)throw new Error(await res.text());
+    if(!res.ok)throw new Error(await cloudErrorText(res));
     updateCloudStatus(`클라우드 저장됨 · ${new Date().toLocaleTimeString('ko-KR')}`);
   }catch(e){
-    updateCloudStatus('클라우드 저장 실패: 네트워크 또는 Supabase 권한을 확인하세요.',true);
-    if(!silent)alert('클라우드 저장 실패\nSupabase 설정을 확인하세요.');
+    const msg=`클라우드 저장 실패: ${e.message||'Supabase 설정을 확인하세요.'}`;
+    updateCloudStatus(msg,true);
+    if(!silent)alert(msg);
   }finally{cloudSaving=false;}
 }
 function scheduleCloudSave(){
