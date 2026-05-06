@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>서울인력 스케줄 v9</title>
+<title>서울인력 스케줄 v10</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -30,6 +30,9 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink)
 .dbtn:hover{background:var(--navy-light);border-color:var(--navy2);color:var(--navy);}
 .dbtn.active{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:700;}
 .dbtn.thu{opacity:.35;cursor:default;text-decoration:line-through;}
+.date-input{padding:6px 12px;border:1px solid var(--border2);border-radius:20px;background:var(--surface);color:var(--ink2);font-family:'DM Mono',monospace;font-size:12px;font-weight:700;outline:none;margin-left:8px;}
+.date-input:focus{border-color:var(--pink);background:var(--pink-light);}
+.schedule-day-label{font-size:12px;font-weight:900;color:var(--navy);background:var(--navy-light);border:1px solid #bfdbfe;border-radius:20px;padding:6px 13px;min-width:74px;text-align:center;}
 .page{max-width:920px;margin:0 auto;padding:22px 20px 80px;}
 .tab-page{display:none;}
 .tab-page.active{display:block;}
@@ -63,6 +66,10 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink)
 .modal{background:var(--surface);border-radius:16px;padding:22px;min-width:320px;max-width:500px;width:92%;max-height:84vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(26,21,53,.25);border-top:4px solid var(--pink);}
 .modal-title{font-size:15px;font-weight:900;margin-bottom:3px;}
 .modal-date{font-size:11px;color:var(--ink3);font-family:'DM Mono',monospace;margin-bottom:13px;}
+.modal-range{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+.modal-range label{font-size:10px;font-weight:800;color:var(--ink3);font-family:'DM Mono',monospace;display:flex;flex-direction:column;gap:4px;}
+.modal-range input{width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:12px;background:var(--bg2);font-family:'DM Mono',monospace;font-size:12px;color:var(--ink);outline:none;}
+.modal-range input:focus{border-color:var(--pink);background:var(--surface);}
 .modal-search{width:100%;padding:9px 12px;border:1px solid var(--border2);border-radius:20px;font-family:'Noto Sans KR',sans-serif;font-size:12px;outline:none;margin-bottom:10px;background:var(--bg2);}
 .modal-search:focus{border-color:var(--pink);background:var(--surface);}
 .modal-list{overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:2px;}
@@ -217,12 +224,27 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink)
 /* CLOSED HOSPITAL */
 .hblock.closed{opacity:.6;border-style:dashed;}
 .closed-badge{font-size:10px;background:#fca5a5;color:#991b1b;padding:2px 8px;border-radius:10px;font-weight:700;}
+.cloud-btn{border:none;background:#fff;color:var(--navy);border-radius:20px;padding:8px 13px;font-family:'Noto Sans KR',sans-serif;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 6px 18px rgba(15,23,42,.16);}
+.cloud-btn.on{background:#ecfdf5;color:#047857;}
+.cloud-btn.err{background:#fef2f2;color:#b91c1c;}
+.cloud-box{background:var(--bg);border:1px solid var(--border2);border-radius:10px;padding:10px;margin:8px 0;font-size:12px;color:var(--ink2);}
+.cloud-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;}
+.cloud-actions button{padding:9px;border-radius:18px;border:1px solid var(--border2);background:var(--surface);font-family:'Noto Sans KR',sans-serif;font-size:12px;font-weight:700;cursor:pointer;color:var(--ink2);}
+.cloud-actions .primary{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;border:none;}
+.cloud-status{font-size:11px;color:var(--ink3);margin-top:8px;line-height:1.5;}
+.auth-note{background:linear-gradient(135deg,#fff7ed,#fce8f0);border:1px solid #fed7aa;border-radius:12px;padding:11px 13px;font-size:12px;color:var(--ink2);line-height:1.6;margin-bottom:10px;}
+.auth-error{display:none;color:var(--red);font-size:11px;font-weight:700;margin:-4px 0 8px 3px;}
+.auth-error.show{display:block;}
+.small-lock-title{font-size:10px;font-weight:800;color:var(--ink3);letter-spacing:1.6px;text-transform:uppercase;margin:12px 0 7px;font-family:'DM Mono',monospace;}
 </style>
 </head>
 <body>
 <div class="hdr">
-  <div><div class="hdr-logo">서울인력 <em>스케줄</em></div><div class="hdr-sub">통역사 자동 배정 시스템 v9</div></div>
-  <div class="hdr-day" id="dayDisplay">요일 선택</div>
+  <div><div class="hdr-logo">서울인력 <em>스케줄</em></div><div class="hdr-sub">통역사 자동 배정 시스템 v10</div></div>
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+    <button class="cloud-btn" id="cloudBtn" onclick="openCloudModal()">☁️ 로컬</button>
+    <div class="hdr-day" id="dayDisplay">요일 선택</div>
+  </div>
 </div>
 <div class="tabbar">
   <div class="tab active" onclick="switchTab('cal')">📅 월간 휴무 관리</div>
@@ -263,15 +285,10 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink)
 
 <!-- SCHEDULE PAGE -->
 <div class="tab-page" id="page-sched">
-  <div class="daybar">
-    <span class="dlabel">요일 /</span>
-    <button class="dbtn" onclick="selDay(0)">월</button>
-    <button class="dbtn" onclick="selDay(1)">화</button>
-    <button class="dbtn" onclick="selDay(2)">수</button>
-    <button class="dbtn thu">목 ✕</button>
-    <button class="dbtn" onclick="selDay(4)">금</button>
-    <button class="dbtn" onclick="selDay(5)">토</button>
-    <button class="dbtn" onclick="selDay(6)">일</button>
+<div class="daybar">
+    <span class="dlabel">날짜 /</span>
+    <input class="date-input" type="date" id="scheduleDate" onchange="selectScheduleDate(this.value)">
+    <span class="schedule-day-label" id="scheduleDayLabel">요일</span>
   </div>
   <div class="page">
     <div class="leave-banner" id="leaveBanner"></div>
@@ -324,8 +341,16 @@ V:1(2시)"></textarea>
 예시:
 김혜진 → 헤라
 아정 → 안과 2시"></textarea>
-          <div class="hint"><code>이름 → 병원</code> 또는 <code>이름 → 병원 시간</code></div>
+          <div class="hint"><code>이름 → 병원</code> 또는 <code>이름 → 병원 시간</code> · 선택한 날짜에만 적용</div>
           <div class="lock-pills" id="lockPills"></div>
+          <div class="small-lock-title">♾️ 영구 고정</div>
+          <textarea class="textarea" id="permanentLockArea" placeholder="이름 → 병원
+
+예시:
+문지영 → 브라운
+한미영 → 명동"></textarea>
+          <div class="hint">영구 고정은 해당 병원이 열려 있으면 다른 병원으로 이동하지 않습니다. 병원이 휴진이면 자동으로 풀립니다.</div>
+          <div class="lock-pills" id="permanentLockPills"></div>
         </div>
       </div>
     </div>
@@ -342,6 +367,42 @@ V:1(2시)"></textarea>
     </div>
     <button class="btn-gen" onclick="startGenerate()">⚡ 자동 배정 생성</button>
     <div id="resultArea"></div>
+  </div>
+</div>
+
+<!-- EDIT AUTH MODAL -->
+<div class="modal-overlay" id="authOverlay">
+  <div class="modal">
+    <div class="modal-title">🌷 당신은 누구예요?</div>
+    <input class="modal-search" type="text" id="authNameInput" placeholder="이름" onkeydown="if(event.key==='Enter')confirmEditAuth()">
+    <div class="auth-error" id="authError">이름을 다시 확인해 주세요.</div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeAuthModal()">취소</button>
+      <button class="modal-save" onclick="confirmEditAuth()">✓ 확인</button>
+    </div>
+  </div>
+</div>
+
+<!-- CLOUD MODAL -->
+<div class="modal-overlay" id="cloudOverlay">
+  <div class="modal">
+    <div class="modal-title">☁️ Supabase 클라우드 저장</div>
+    <div class="modal-date">회사 공용 휴무/직원 데이터 연결</div>
+    <div class="cloud-box">
+      한 번 연결하면 휴무와 직원 수정 내용이 Supabase에 저장되어 다른 컴퓨터에서도 같은 데이터를 불러올 수 있습니다.
+    </div>
+    <input class="modal-search" type="text" id="cloudUrlInput" placeholder="Supabase Project URL">
+    <input class="modal-search" type="password" id="cloudKeyInput" placeholder="Supabase anon public key">
+    <div class="cloud-actions">
+      <button class="primary" onclick="saveCloudConfig()">연결 저장</button>
+      <button onclick="pullCloudNow()">클라우드 불러오기</button>
+      <button onclick="pushCloudNow()">현재 데이터 올리기</button>
+      <button onclick="disableCloud()">로컬만 사용</button>
+    </div>
+    <div class="cloud-status" id="cloudStatusText"></div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeCloudModal()">닫기</button>
+    </div>
   </div>
 </div>
 
@@ -365,6 +426,10 @@ V:1(2시)"></textarea>
   <div class="modal">
     <div class="modal-title">🏖️ 휴무 등록</div>
     <div class="modal-date" id="modalDate"></div>
+    <div class="modal-range">
+      <label>시작일<input type="date" id="leaveStartDate"></label>
+      <label>종료일<input type="date" id="leaveEndDate"></label>
+    </div>
     <input class="modal-search" type="text" id="modalSearch" placeholder="이름 검색..." oninput="filterModal()">
     <div class="modal-list" id="modalList"></div>
     <div class="modal-btns">
@@ -550,43 +615,109 @@ let STAFF=[
 const STAFF_DEFAULT=JSON.parse(JSON.stringify(STAFF));
 
 // ══════════ STATE ══════════
-let selectedDay=-1,parsed=[],modalDateKey=null,editingStaffName=null;
+let selectedDay=-1,selectedDateKey='',parsed=[],modalDateKey=null,editingStaffName=null;
+let modalLeaveSelection=new Set();
 let calYear=new Date().getFullYear(),calMonth=new Date().getMonth();
 const locksByDay={0:[],1:[],2:[],4:[],5:[],6:[]};
 const supportersByDay={0:[],1:[],2:[],4:[],5:[],6:[]};
+let locksByDate={};
+let permanentLocks=[];
 let leaveData={};
 let pendingNewOldData={};
+let cloudConfig={url:'',key:''};
+let cloudReady=false,cloudSaving=false,cloudSaveTimer=null,suppressCloudSave=false;
+let editAuthorizedName=sessionStorage.getItem('seoulEditorName')||'';
+let pendingAuthAction=null,pendingAuthElement=null;
 
 // ══════════ INIT ══════════
 window.onload=()=>{
   try{const s=localStorage.getItem('seoulLeave_v4');if(s)leaveData=JSON.parse(s);}catch(e){}
   loadStaff();
   normalizeStaffRules();
+  loadCloudConfig();
   renderCalendar();
   renderStaffTable();
+  loadLocks();
+  loadPermanentLocks();
+  updateCloudStatus();
   const d=new Date().getDay(),mapped=d===0?6:d-1;
-  selDay(mapped===3?4:mapped);
+  const defaultDate=new Date();
+  if(mapped===3)defaultDate.setDate(defaultDate.getDate()+1);
+  selectScheduleDate(formatDateKey(defaultDate),{silent:true});
   document.getElementById('pasteArea').addEventListener('input',debounce(doParse,300));
   document.getElementById('lockArea').addEventListener('input',debounce(parseLocks,300));
+  document.getElementById('lockArea').addEventListener('focus',()=>requireEditAuthForElement(document.getElementById('lockArea')));
+  document.getElementById('permanentLockArea').addEventListener('input',debounce(parsePermanentLocks,300));
+  document.getElementById('permanentLockArea').addEventListener('focus',()=>requireEditAuthForElement(document.getElementById('permanentLockArea')));
   document.getElementById('modalOverlay').addEventListener('click',e=>{if(e.target===document.getElementById('modalOverlay'))closeModal();});
+  document.getElementById('authOverlay').addEventListener('click',e=>{if(e.target===document.getElementById('authOverlay'))closeAuthModal();});
   document.getElementById('supportLangOverlay').addEventListener('click',e=>{if(e.target===document.getElementById('supportLangOverlay'))closeSupportPopup();});
   document.getElementById('addstaffOverlay').addEventListener('click',e=>{if(e.target===document.getElementById('addstaffOverlay'))closeAddStaff();});
+  document.getElementById('cloudOverlay').addEventListener('click',e=>{if(e.target===document.getElementById('cloudOverlay'))closeCloudModal();});
+  if(cloudReady)pullCloudState({silent:true});
 };
 const debounce=(fn,ms)=>{let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);};};
 const toMin=(t)=>{const[h,m]=t.split(':').map(Number);return h*60+m;};
 const toStr=(m)=>`${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
+function formatDateKey(date){
+  return`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+}
+function dateFromKey(key){
+  const[y,m,d]=key.split('-').map(Number);
+  return new Date(y,m-1,d);
+}
+function dayIndexFromDate(date){
+  const js=date.getDay();
+  return js===0?6:js-1;
+}
 function toKoreanTime(t){
   const m=typeof t==='number'?t:toMin(t);
   let h=Math.floor(m/60),mn=m%60;
   const displayH=h>12?h-12:h;
   return mn?`${displayH}시${mn}분`:`${displayH}시`;
 }
-const saveLD=()=>{try{localStorage.setItem('seoulLeave_v4',JSON.stringify(leaveData));}catch(e){}};
-const saveStaff=()=>{try{localStorage.setItem('seoulStaff_v1',JSON.stringify(STAFF));}catch(e){}};
+const saveLD=()=>{try{localStorage.setItem('seoulLeave_v4',JSON.stringify(leaveData));}catch(e){};scheduleCloudSave();};
+const saveStaff=()=>{try{localStorage.setItem('seoulStaff_v1',JSON.stringify(STAFF));}catch(e){};scheduleCloudSave();};
+const saveLocks=()=>{try{localStorage.setItem('seoulLocksByDate_v1',JSON.stringify(locksByDate));}catch(e){};scheduleCloudSave();};
+const savePermanentLocks=()=>{try{localStorage.setItem('seoulPermanentLocks_v1',JSON.stringify(permanentLocks));}catch(e){};scheduleCloudSave();};
 function loadStaff(){try{const s=localStorage.getItem('seoulStaff_v1');if(s){const a=JSON.parse(s);if(Array.isArray(a)&&a.length){STAFF=a;return;}}}catch(e){}}
+function loadLocks(){try{const s=localStorage.getItem('seoulLocksByDate_v1');if(s){const a=JSON.parse(s);if(a&&typeof a==='object')locksByDate=a;}}catch(e){}}
+function loadPermanentLocks(){try{const s=localStorage.getItem('seoulPermanentLocks_v1');if(s){const a=JSON.parse(s);if(Array.isArray(a))permanentLocks=a;}}catch(e){}}
+const EDITOR_NAMES=['한승미','황수미','홍주은','임소희','안성일'];
+function hasEditAuth(){return EDITOR_NAMES.includes(editAuthorizedName);}
+function withEditAuth(action,focusEl=null){
+  if(hasEditAuth()){action();return;}
+  pendingAuthAction=action;pendingAuthElement=focusEl;
+  document.getElementById('authNameInput').value='';
+  document.getElementById('authError').classList.remove('show');
+  document.getElementById('authOverlay').classList.add('show');
+  setTimeout(()=>document.getElementById('authNameInput').focus(),50);
+}
+function requireEditAuthForElement(el){
+  if(hasEditAuth())return;
+  el.blur();
+  withEditAuth(()=>setTimeout(()=>el.focus(),40),el);
+}
+function confirmEditAuth(){
+  const name=document.getElementById('authNameInput').value.trim();
+  if(!EDITOR_NAMES.includes(name)){
+    document.getElementById('authError').classList.add('show');
+    return;
+  }
+  editAuthorizedName=name;
+  sessionStorage.setItem('seoulEditorName',name);
+  closeAuthModal(true);
+}
+function closeAuthModal(runPending=false){
+  document.getElementById('authOverlay').classList.remove('show');
+  const action=pendingAuthAction;
+  pendingAuthAction=null;pendingAuthElement=null;
+  if(runPending&&action)action();
+}
 function normalizeStaffRules(){
   const patch=(name,updates)=>{const s=STAFF.find(x=>x.name===name);if(s)Object.assign(s,updates);};
   patch('한미영',{langs:['T'],fixedRules:[{hospId:'명동',lang:'T'}],neverBase:false,fixedBase:'명동'});
+  patch('아루니',{langs:['T'],fixedRules:[{hospId:'아트라인',lang:'T'}],alwaysFixed:true,neverBase:false});
   patch('중순',{langs:['C','P','EN'],neverHosps:['헤라']});
   patch('항다르마',{langs:['MG'],neverBase:true,preferNear:true});
   patch('헬레나',{langs:['I'],fixedRules:[{hospId:'니어',lang:'I'}],preferNear:true,neverBase:false});
@@ -601,7 +732,133 @@ function normalizeStaffRules(){
   });
   saveStaff();
 }
-function resetStaff(){if(!confirm('직원 명단을 기본값으로 복원하시겠습니까?\n(추가하신 직원도 모두 삭제됩니다)'))return;STAFF=JSON.parse(JSON.stringify(STAFF_DEFAULT));saveStaff();renderStaffTable();}
+function resetStaff(){withEditAuth(()=>{if(!confirm('직원 명단을 기본값으로 복원하시겠습니까?\n(추가하신 직원도 모두 삭제됩니다)'))return;STAFF=JSON.parse(JSON.stringify(STAFF_DEFAULT));saveStaff();renderStaffTable();});}
+
+// ══════════ CLOUD SYNC ══════════
+function loadCloudConfig(){
+  try{
+    const raw=localStorage.getItem('seoulCloudConfig_v1');
+    if(raw)cloudConfig=JSON.parse(raw)||{url:'',key:''};
+  }catch(e){cloudConfig={url:'',key:''};}
+  cloudReady=!!(cloudConfig.url&&cloudConfig.key);
+}
+function saveCloudConfig(){
+  cloudConfig.url=document.getElementById('cloudUrlInput').value.trim().replace(/\/+$/,'');
+  cloudConfig.key=document.getElementById('cloudKeyInput').value.trim();
+  localStorage.setItem('seoulCloudConfig_v1',JSON.stringify(cloudConfig));
+  cloudReady=!!(cloudConfig.url&&cloudConfig.key);
+  updateCloudStatus(cloudReady?'연결 정보 저장됨':'연결 정보가 비어 있습니다.');
+  if(cloudReady)pullCloudState({silent:false});
+}
+function disableCloud(){
+  if(!confirm('이 브라우저에서 클라우드 연결을 해제할까요? 데이터는 Supabase에서 삭제되지 않습니다.'))return;
+  localStorage.removeItem('seoulCloudConfig_v1');
+  cloudConfig={url:'',key:''};cloudReady=false;
+  updateCloudStatus('로컬 저장만 사용합니다.');
+}
+function cloudHeaders(extra={}){
+  return{
+    apikey:cloudConfig.key,
+    Authorization:`Bearer ${cloudConfig.key}`,
+    'Content-Type':'application/json',
+    ...extra
+  };
+}
+function cloudEndpoint(){
+  return`${cloudConfig.url.replace(/\/+$/,'')}/rest/v1/seoul_schedule_state`;
+}
+function cloudPayload(){
+  return{
+    id:'global',
+    data:{
+      leaveData,
+      staff:STAFF,
+      locksByDate,
+      permanentLocks,
+      savedAt:new Date().toISOString(),
+      version:10
+    },
+    updated_at:new Date().toISOString()
+  };
+}
+function applyCloudData(data){
+  if(data?.leaveData&&typeof data.leaveData==='object')leaveData=data.leaveData;
+  if(Array.isArray(data?.staff))STAFF=data.staff;
+  if(data?.locksByDate&&typeof data.locksByDate==='object')locksByDate=data.locksByDate;
+  if(Array.isArray(data?.permanentLocks))permanentLocks=data.permanentLocks;
+  suppressCloudSave=true;
+  try{
+    localStorage.setItem('seoulLeave_v4',JSON.stringify(leaveData));
+    localStorage.setItem('seoulStaff_v1',JSON.stringify(STAFF));
+    localStorage.setItem('seoulLocksByDate_v1',JSON.stringify(locksByDate));
+    localStorage.setItem('seoulPermanentLocks_v1',JSON.stringify(permanentLocks));
+    normalizeStaffRules();
+  }finally{suppressCloudSave=false;}
+  renderCalendar();renderStaffTable();loadSelectedLocksIntoEditor();renderPermanentLockEditor();updateLeaveBanner();
+}
+async function pullCloudState({silent=false}={}){
+  if(!cloudReady)return;
+  updateCloudStatus('클라우드 데이터 불러오는 중...');
+  try{
+    const res=await fetch(`${cloudEndpoint()}?id=eq.global&select=data,updated_at`,{headers:cloudHeaders()});
+    if(!res.ok)throw new Error(await res.text());
+    const rows=await res.json();
+    if(rows?.[0]?.data){
+      applyCloudData(rows[0].data);
+      updateCloudStatus(`클라우드 연결됨 · 마지막 불러오기 ${new Date().toLocaleTimeString('ko-KR')}`);
+    }else{
+      await pushCloudState({silent:true});
+      updateCloudStatus('클라우드에 초기 데이터를 생성했습니다.');
+    }
+  }catch(e){
+    updateCloudStatus('클라우드 불러오기 실패: Supabase URL, anon key, 테이블 설정을 확인하세요.',true);
+    if(!silent)alert('클라우드 불러오기 실패\nSupabase 설정을 확인하세요.');
+  }
+}
+async function pushCloudState({silent=false}={}){
+  if(!cloudReady||cloudSaving)return;
+  cloudSaving=true;
+  updateCloudStatus('클라우드 저장 중...');
+  try{
+    const res=await fetch(cloudEndpoint(),{
+      method:'POST',
+      headers:cloudHeaders({Prefer:'resolution=merge-duplicates'}),
+      body:JSON.stringify(cloudPayload())
+    });
+    if(!res.ok)throw new Error(await res.text());
+    updateCloudStatus(`클라우드 저장됨 · ${new Date().toLocaleTimeString('ko-KR')}`);
+  }catch(e){
+    updateCloudStatus('클라우드 저장 실패: 네트워크 또는 Supabase 권한을 확인하세요.',true);
+    if(!silent)alert('클라우드 저장 실패\nSupabase 설정을 확인하세요.');
+  }finally{cloudSaving=false;}
+}
+function scheduleCloudSave(){
+  if(suppressCloudSave||!cloudReady)return;
+  clearTimeout(cloudSaveTimer);
+  cloudSaveTimer=setTimeout(()=>pushCloudState({silent:true}),600);
+}
+function openCloudModal(){
+  document.getElementById('cloudUrlInput').value=cloudConfig.url||'';
+  document.getElementById('cloudKeyInput').value=cloudConfig.key||'';
+  updateCloudStatus();
+  document.getElementById('cloudOverlay').classList.add('show');
+}
+function closeCloudModal(){document.getElementById('cloudOverlay').classList.remove('show');}
+function pullCloudNow(){pullCloudState({silent:false});}
+function pushCloudNow(){
+  if(!cloudReady){alert('먼저 Supabase URL과 anon key를 저장하세요.');return;}
+  if(confirm('현재 이 브라우저의 휴무/직원 데이터를 클라우드에 올릴까요?'))pushCloudState({silent:false});
+}
+function updateCloudStatus(msg='',isErr=false){
+  const btn=document.getElementById('cloudBtn');
+  if(btn){
+    btn.textContent=cloudReady?(isErr?'☁️ 오류':'☁️ 연결됨'):'☁️ 로컬';
+    btn.classList.toggle('on',cloudReady&&!isErr);
+    btn.classList.toggle('err',!!isErr);
+  }
+  const el=document.getElementById('cloudStatusText');
+  if(el)el.textContent=msg||(cloudReady?'Supabase 연결 정보가 저장되어 있습니다.':'현재는 이 브라우저에만 저장됩니다.');
+}
 
 function seededRand(s){let v=s%99991+1;return()=>{v=Math.sin(v*9301+49297)%233280;return Math.abs(v);};}
 function shuffleSeeded(arr,s){const r=seededRand(s),a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
@@ -648,15 +905,19 @@ function goToday(){calYear=new Date().getFullYear();calMonth=new Date().getMonth
 
 // ══════════ LEAVE MODAL ══════════
 function openModal(dk,date){
-  modalDateKey=dk;
-  document.getElementById('modalDate').textContent=`${date.getFullYear()}년 ${date.getMonth()+1}월 ${date.getDate()}일 (${WDAYS[date.getDay()]})`;
-  document.getElementById('modalSearch').value='';
-  renderModalList('');
-  document.getElementById('modalOverlay').classList.add('show');
+  withEditAuth(()=>{
+    modalDateKey=dk;
+    modalLeaveSelection=new Set(leaveData[dk]||[]);
+    document.getElementById('modalDate').textContent=`${date.getFullYear()}년 ${date.getMonth()+1}월 ${date.getDate()}일 (${WDAYS[date.getDay()]})`;
+    document.getElementById('leaveStartDate').value=dk;
+    document.getElementById('leaveEndDate').value=dk;
+    document.getElementById('modalSearch').value='';
+    renderModalList('');
+    document.getElementById('modalOverlay').classList.add('show');
+  });
 }
-function closeModal(){document.getElementById('modalOverlay').classList.remove('show');modalDateKey=null;}
+function closeModal(){document.getElementById('modalOverlay').classList.remove('show');modalDateKey=null;modalLeaveSelection=new Set();}
 function renderModalList(q){
-  const leaves=leaveData[modalDateKey]||[];
   const qn=q.trim();
   const groups=[{label:'정직원',staff:STAFF.filter(s=>s.type==='jeong')},{label:'알바',staff:STAFF.filter(s=>s.type==='alba')}];
   let html='';
@@ -665,7 +926,7 @@ function renderModalList(q){
     if(!fil.length)return;
     html+=`<div class="modal-group-label">${g.label}</div>`;
     fil.forEach(s=>{
-      const chk=leaves.includes(s.name);
+      const chk=modalLeaveSelection.has(s.name);
       const flags=s.langs.map(lk=>LANGS[lk]?.flag||'?').join('');
       html+=`<label class="modal-item${chk?' checked':''}"><input type="checkbox" ${chk?'checked':''} onchange="toggleLeave('${s.name}',this.checked)"><span class="modal-item-name">${s.name}</span><span class="modal-item-info">${flags}</span></label>`;
     });
@@ -675,13 +936,34 @@ function renderModalList(q){
 function filterModal(){renderModalList(document.getElementById('modalSearch').value);}
 function toggleLeave(name,checked){
   if(!modalDateKey)return;
-  if(!leaveData[modalDateKey])leaveData[modalDateKey]=[];
-  if(checked){if(!leaveData[modalDateKey].includes(name))leaveData[modalDateKey].push(name);}
-  else{leaveData[modalDateKey]=leaveData[modalDateKey].filter(n=>n!==name);}
-  if(!leaveData[modalDateKey].length)delete leaveData[modalDateKey];
+  if(checked)modalLeaveSelection.add(name);
+  else modalLeaveSelection.delete(name);
   document.querySelectorAll('.modal-item').forEach(el=>{const cb=el.querySelector('input');if(cb)el.classList.toggle('checked',cb.checked);});
 }
-function saveLeave(){saveLD();closeModal();renderCalendar();updateLeaveBanner();}
+function dateKeysBetween(startKey,endKey){
+  const out=[];let start=dateFromKey(startKey),end=dateFromKey(endKey);
+  if(start>end){const tmp=start;start=end;end=tmp;}
+  for(const d=new Date(start);d<=end;d.setDate(d.getDate()+1))out.push(formatDateKey(d));
+  return out;
+}
+function saveLeave(){
+  if(!modalDateKey)return;
+  const start=document.getElementById('leaveStartDate').value||modalDateKey;
+  const end=document.getElementById('leaveEndDate').value||start;
+  if(!start||!end){alert('휴무 시작일과 종료일을 선택하세요.');return;}
+  const names=[...modalLeaveSelection];
+  const allStaffNames=new Set(STAFF.map(s=>s.name));
+  dateKeysBetween(start,end).forEach(dk=>{
+    const current=new Set(leaveData[dk]||[]);
+    if(dk===modalDateKey){
+      [...current].forEach(name=>{if(allStaffNames.has(name)&&!modalLeaveSelection.has(name))current.delete(name);});
+    }
+    names.forEach(name=>current.add(name));
+    if(current.size)leaveData[dk]=[...current];
+    else delete leaveData[dk];
+  });
+  saveLD();closeModal();renderCalendar();updateLeaveBanner();
+}
 
 function startGenerate(){
   if(selectedDay<0){alert('요일을 선택하세요!');return;}
@@ -692,10 +974,7 @@ function startGenerate(){
 
 // ══════════ HELPERS ══════════
 function getDateKey(){
-  if(selectedDay<0)return null;
-  const now=new Date();const jsDow=selectedDay===6?0:selectedDay+1;
-  const diff=jsDow-now.getDay();const t=new Date(now);t.setDate(now.getDate()+diff);
-  return`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+  return selectedDateKey||null;
 }
 function getDaySeed(){
   const dk=getDateKey()||`${new Date().getFullYear()}${selectedDay}`;
@@ -719,6 +998,19 @@ function getClosingMin(hid){
   const t=selectedDay>=5?(h.closing[1]||h.closing[0]):h.closing[0];
   return toMin(t);
 }
+function isHospitalClosedOnSelectedDay(hid){
+  if(hid?.startsWith('__'))return false;
+  const h=HOSPITALS.find(h=>h.id===hid);
+  return !!(h&&selectedDay>=0&&h.closedDays.includes(selectedDay));
+}
+function permanentBaseForStaff(s){
+  if(!s)return null;
+  if(s.name==='아루니'&&selectedDay===6&&!isHospitalClosedOnSelectedDay('브라운'))return '브라운';
+  const explicit=permanentLocks.find(l=>l.name===s.name)?.hospId;
+  const base=explicit||((s.alwaysFixed&&s.fixedRules?.[0])?s.fixedRules[0].hospId:null);
+  if(!base||isHospitalClosedOnSelectedDay(base))return null;
+  return base;
+}
 function demandEndMin(hospId,times,allDay){
   if(!times?.length)return allDay?getClosingMin(hospId):toMin('10:00');
   const base=toMin(times[times.length-1]);
@@ -734,6 +1026,12 @@ function staffScheduleFit(st,d){
   if(!slots.length)return{can:true,isMoved:false,fromH:null};
   if(slots.some(sl=>sl.hospId===next.hospId))return{can:true,isMoved:false,fromH:null};
   if(next.allDay)return{can:false};
+  const compatibleWithAll=()=>slots.every(sl=>{
+    if(sl.allDay)return false;
+    const beforeNext=sl.end+travelTime(sl.hospId,next.hospId)<=next.start;
+    const afterNext=next.end+travelTime(next.hospId,sl.hospId)<=sl.start;
+    return beforeNext||afterNext;
+  });
 
   let bestPrev=null;
   for(const sl of slots){
@@ -741,7 +1039,7 @@ function staffScheduleFit(st,d){
     const arrive=sl.end+travelTime(sl.hospId,next.hospId);
     if(arrive<=next.start&&(!bestPrev||sl.end>bestPrev.end))bestPrev=sl;
   }
-  if(bestPrev)return{can:true,isMoved:true,fromH:bestPrev.hospId};
+  if(bestPrev&&compatibleWithAll())return{can:true,isMoved:true,fromH:bestPrev.hospId};
 
   for(const sl of slots){
     if(sl.allDay)return{can:false};
@@ -762,12 +1060,29 @@ function needCount(hospId,lang,count){
 // ══════════ DAY SELECT ══════════
 function selDay(day){
   if(day===3)return;
+  const base=selectedDateKey?dateFromKey(selectedDateKey):new Date();
+  const current=dayIndexFromDate(base);
+  const t=new Date(base);
+  t.setDate(base.getDate()+day-current);
+  selectScheduleDate(formatDateKey(t));
+}
+function selectScheduleDate(key,{silent=false}={}){
+  if(!key)return;
+  const date=dateFromKey(key);
+  const day=dayIndexFromDate(date);
+  if(day===3){
+    if(!silent)alert('목요일은 병원 휴진 기준이라 배정일로 선택할 수 없습니다.');
+    return;
+  }
   selectedDay=day;
-  const map=[0,1,2,4,5,6];
-  document.querySelectorAll('.dbtn:not(.thu)').forEach((b,i)=>b.classList.toggle('active',map[i]===day));
-  document.getElementById('dayDisplay').textContent=DAYS_KR[day]+'요일';
-  const lk=locksByDay[day]||[];
-  document.getElementById('lockArea').value=lk.map(l=>{const hn=HOSPITALS.find(h=>h.id===l.hospId)?.name||l.hospId;return l.times.length?`${l.name} → ${hn} ${l.times.join('/')}`:`${l.name} → ${hn}`;}).join('\n');
+  selectedDateKey=key;
+  const dateInput=document.getElementById('scheduleDate');
+  if(dateInput)dateInput.value=key;
+  const dayLabel=document.getElementById('scheduleDayLabel');
+  if(dayLabel)dayLabel.textContent=DAYS_KR[day]+'요일';
+  document.getElementById('dayDisplay').textContent=`${key} ${DAYS_KR[day]}요일`;
+  loadSelectedLocksIntoEditor();
+  renderPermanentLockEditor();
   const sp=supportersByDay[day]||[];
   document.getElementById('supportArea').value=sp.map(s=>{const hn=HOSPITALS.find(h=>h.id===s.hospId)?.name||(s.hospId.startsWith('__')?s.hospId.slice(2):s.hospId);return`${s.name} → ${hn}${s.lang?' '+s.lang:''}`;}).join('\n');
   renderLockPills();renderSupportPills();doParse();updateLeaveBanner();
@@ -799,6 +1114,32 @@ function resolveLang(raw){
   const r=raw.trim().replace(/\s/g,'');
   return LANG_ALIAS[r]||LANG_ALIAS[r.toUpperCase()]||(LANGS[r.toUpperCase()]?r.toUpperCase():null);
 }
+function parseDemandText(tr,hospId){
+  const lm=tr.match(/^([A-Za-z가-힣]{1,8})\s*(?:[：:]\s*|-+\s*|\s+)?(\d+)(.*)?$/);
+  if(!lm||!hospId)return false;
+  const lc=resolveLang(lm[1]);
+  if(!lc||parseInt(lm[2])<=0)return false;
+  parsed.push({hospId,lang:lc,count:parseInt(lm[2]),times:parseTimes(lm[3]||'')});
+  return true;
+}
+function parseInlineHospitalDemand(tr){
+  const candidates=[...HOSPITALS.map(h=>h.name),...HOSPITALS.map(h=>h.tn),...Object.values(HOSP_ALIASES).flat()]
+    .filter(Boolean).sort((a,b)=>b.length-a.length);
+  for(const name of candidates){
+    const compactName=name.replace(/\s/g,'');
+    const compactLine=tr.replace(/\s/g,'');
+    if(!compactLine.startsWith(compactName))continue;
+    const rest=compactLine.slice(compactName.length).trim();
+    const hospId=resolveHospId(name);
+    if(hospId&&parseDemandText(rest,hospId))return true;
+  }
+  const m=tr.match(/^([가-힣A-Za-z]+?)\s+(.+)$/);
+  if(m){
+    const hospId=resolveHospId(m[1]);
+    if(hospId&&parseDemandText(m[2],hospId))return true;
+  }
+  return false;
+}
 function parseTimes(raw){
   if(!raw)return[];
   const times=[];const re=/(\d+)시(\d+)?분?/g;let m;
@@ -823,15 +1164,9 @@ function doParse(){
   for(const rawLine of text.split('\n')){
     const tr=rawLine.trim();
     if(!tr)continue;
-    // Language line: supports colon (V:5), dash (V - 5), or space (V 5)
-    const lm=tr.match(/^([A-Za-z가-힣]{1,8})(?:\s*[：:]\s*|\s*-+\s*|\s+)(\d+)(.*)?$/);
-    if(lm&&curHospId){
-      const lc=resolveLang(lm[1]);
-      if(lc&&parseInt(lm[2])>0){
-        parsed.push({hospId:curHospId,lang:lc,count:parseInt(lm[2]),times:parseTimes(lm[3]||'')});
-      }
-      continue;
-    }
+    // Language line: supports V:5, V-5, V 5, and V2(2:00,3:00)
+    if(parseDemandText(tr,curHospId))continue;
+    if(parseInlineHospitalDemand(tr))continue;
     // Hospital name line
     const hid=resolveHospId(tr);
     if(hid){curHospId=hid;}
@@ -870,7 +1205,8 @@ function renderPreview(){
 function parseLocks(){
   if(selectedDay<0)return;
   const text=document.getElementById('lockArea').value;
-  locksByDay[selectedDay]=[];
+  const dk=getDateKey();if(!dk)return;
+  locksByDate[dk]=[];
   text.split('\n').forEach(line=>{
     const tr=line.trim();if(!tr)return;
     const m=tr.match(/^(.+?)\s*[→\->]+\s*(.+?)(\s+\d+시.*)?$/);
@@ -879,13 +1215,27 @@ function parseLocks(){
     const hospId=resolveHospId(m[2].trim().split(/\s+/)[0])||resolveHospId(m[2].trim());
     if(!hospId||!STAFF.some(s=>s.name===name))return;
     const times=parseTimes((m[3]||'')+(m[2]||''));
-    locksByDay[selectedDay].push({name,hospId,times});
+    locksByDate[dk].push({name,hospId,times});
   });
+  if(!locksByDate[dk].length)delete locksByDate[dk];
+  saveLocks();
+  renderLockPills();
+}
+function lockLineText(l){
+  const hn=HOSPITALS.find(h=>h.id===l.hospId)?.name||l.hospId;
+  return l.times?.length?`${l.name} → ${hn} ${l.times.join('/')}`:`${l.name} → ${hn}`;
+}
+function loadSelectedLocksIntoEditor(){
+  const dk=getDateKey();
+  const lk=dk?(locksByDate[dk]||[]):(locksByDay[selectedDay]||[]);
+  const area=document.getElementById('lockArea');
+  if(area)area.value=lk.map(lockLineText).join('\n');
   renderLockPills();
 }
 function renderLockPills(){
   const c=document.getElementById('lockPills');
-  const lk=locksByDay[selectedDay]||[];
+  const dk=getDateKey();
+  const lk=dk?(locksByDate[dk]||[]):(locksByDay[selectedDay]||[]);
   if(!lk.length){c.innerHTML='<span style="font-size:11px;color:var(--ink3);font-style:italic">고정 배정 없음</span>';return;}
   c.innerHTML=lk.map((l,i)=>{
     const hn=HOSPITALS.find(h=>h.id===l.hospId)?.name||l.hospId;
@@ -893,9 +1243,49 @@ function renderLockPills(){
   }).join('');
 }
 function removeLock(i){
-  locksByDay[selectedDay].splice(i,1);
-  document.getElementById('lockArea').value=locksByDay[selectedDay].map(l=>{const hn=HOSPITALS.find(h=>h.id===l.hospId)?.name||l.hospId;return l.times.length?`${l.name} → ${hn} ${l.times.join('/')}`:`${l.name} → ${hn}`;}).join('\n');
-  renderLockPills();
+  withEditAuth(()=>{
+    const dk=getDateKey();if(!dk)return;
+    const list=locksByDate[dk]||[];
+    list.splice(i,1);
+    if(list.length)locksByDate[dk]=list;else delete locksByDate[dk];
+    document.getElementById('lockArea').value=(locksByDate[dk]||[]).map(lockLineText).join('\n');
+    saveLocks();renderLockPills();
+  });
+}
+
+function parsePermanentLocks(){
+  const text=document.getElementById('permanentLockArea').value;
+  permanentLocks=[];
+  text.split('\n').forEach(line=>{
+    const tr=line.trim();if(!tr)return;
+    const m=tr.match(/^(.+?)\s*[→\->]+\s*(.+)$/);
+    if(!m)return;
+    const name=m[1].trim();
+    const hospId=resolveHospId(m[2].trim().split(/\s+/)[0])||resolveHospId(m[2].trim());
+    if(!hospId||!STAFF.some(s=>s.name===name))return;
+    permanentLocks.push({name,hospId});
+  });
+  savePermanentLocks();
+  renderPermanentLockPills();
+}
+function renderPermanentLockEditor(){
+  const area=document.getElementById('permanentLockArea');
+  if(area)area.value=permanentLocks.map(l=>`${l.name} → ${HOSPITALS.find(h=>h.id===l.hospId)?.name||l.hospId}`).join('\n');
+  renderPermanentLockPills();
+}
+function renderPermanentLockPills(){
+  const c=document.getElementById('permanentLockPills');if(!c)return;
+  if(!permanentLocks.length){c.innerHTML='<span style="font-size:11px;color:var(--ink3);font-style:italic">영구 고정 없음</span>';return;}
+  c.innerHTML=permanentLocks.map((l,i)=>{
+    const hn=HOSPITALS.find(h=>h.id===l.hospId)?.name||l.hospId;
+    return`<div class="lock-pill"><span class="lpname">${l.name}</span><span style="color:var(--ink3)">→</span><span style="color:var(--lock)">${hn}</span><span style="color:var(--amber);font-size:10px">영구</span><span class="lpdel" onclick="removePermanentLock(${i})">×</span></div>`;
+  }).join('');
+}
+function removePermanentLock(i){
+  withEditAuth(()=>{
+    permanentLocks.splice(i,1);
+    savePermanentLocks();renderPermanentLockEditor();
+  });
 }
 
 // ══════════ SUPPORTERS ══════════
@@ -980,7 +1370,11 @@ function doGenerate(){
     return h&&h.closedDays.includes(selectedDay);
   });
 
-  const todayLocks=locksByDay[selectedDay]||[];
+  const dateLocks=locksByDate[dk]||[];
+  const permanentToday=availPool.map(s=>({staff:s,hospId:permanentBaseForStaff(s)}))
+    .filter(x=>x.hospId)
+    .map(x=>({name:x.staff.name,hospId:x.hospId,times:[],permanent:true}));
+  const todayLocks=[...permanentToday,...dateLocks.filter(l=>!permanentToday.some(p=>p.name===l.name))];
   const rawDemand=active.map(p=>({
     ...p,
     needCount:needCount(p.hospId,p.lang,p.count),
@@ -1094,7 +1488,7 @@ function doGenerate(){
       if(!st?.cur||st.cur===d.hospId)return true;
       if(staffScheduleFit(st,d).can)return true;
       if(s.name==='아정'&&selectedDay===5&&st.cur==='니어'&&d.hospId==='헤라'&&d.times.length&&toMin(d.times[0])>=toMin('14:00'))return true;
-      return st.cur==='브라운'&&(d.times.length>0||countBrownAssignedForDemand(d)>=2);
+      return false;
     };
     const countBrownAssignedForDemand=(demandItem)=>new Set(results.flatMap(r=>{
       const langs=r.demand.mergedRU||r.demand.mergedEN?r.demand.mergeLangs:[r.demand.lang];
@@ -1144,8 +1538,9 @@ function doGenerate(){
     const isAlwaysFixed=(s)=>s.alwaysFixed&&isFR(s);
 
     const scored=cands.map(s=>{
+      const hardBase=permanentBaseForStaff(s)||s.fixedBase;
+      if(hardBase&&d.hospId!==hardBase)return{s,sc:999,canGo:false};
       if(s.neverBase&&d.hospId==='브라운')return{s,sc:999,canGo:false};
-      if(s.fixedBase&&d.hospId!==s.fixedBase)return{s,sc:999,canGo:false};
       if(s.neverHosps?.includes(d.hospId))return{s,sc:999,canGo:false};
       if(assignedNames.has(s.name)&&!isLK(s)&&!canReuseAssigned(s))return{s,sc:998,canGo:false};
 
@@ -1193,6 +1588,11 @@ function doGenerate(){
       const yuirinaHeraNear=d.lang==='R'&&['헤라','니어'].includes(d.hospId)&&s.name==='유이리나5';
       const ednaPhilEnglish=(s.name==='에드나')&&((d.mergedEN&&d.mergeLangs.some(l=>['P','EN'].includes(l)))||['P','EN'].includes(d.lang));
       const englishByPhilippines=(d.lang==='EN'||useEng)&&s.langs.includes('P')&&s.langs.includes('EN');
+      const primaryLang=s.langs.find(l=>l!=='EN')||s.langs[0];
+      const nativeLangMatch=!d.mergedRU&&(
+        d.mergedEN?d.mergeLangs.includes(primaryLang):d.lang===primaryLang
+      );
+      const englishOnlyTakingBilingual=d.lang==='EN'&&s.langs.includes('EN')&&primaryLang&&primaryLang!=='EN';
       const workingAlba=s.type==='alba';
       const flexibleBrownTimedMove=st.cur==='브라운'&&d.times.length>0;
       const timedChainMove=st.cur&&!st.allDay&&st.cur!==d.hospId;
@@ -1211,8 +1611,10 @@ function doGenerate(){
         flexibleBrownTimedMove?-11:
         timedChainMove?-11:
         multiLangSameHosp?-9:
+        nativeLangMatch?-8:
         ednaPhilEnglish?-8:
         englishByPhilippines?-7:
+        englishOnlyTakingBilingual?3:
         workingAlba?-6:
         (s.preferBase&&d.hospId==='브라운')?-5:st.cur===d.hospId?0:!st.cur?1:2;
       return{s,sc,canGo,isMoved,fromH,lk:isLK(s),fx:isFR(s),mgr:isMgr(s),rn};
@@ -1252,8 +1654,9 @@ function doGenerate(){
   };
   const extraCanGo=(s,r)=>{
     const d=r.demand;
+    const hardBase=permanentBaseForStaff(s)||s.fixedBase;
+    if(hardBase&&d.hospId!==hardBase)return false;
     if(s.neverBase&&d.hospId==='브라운')return false;
-    if(s.fixedBase&&d.hospId!==s.fixedBase)return false;
     if(s.neverHosps?.includes(d.hospId))return false;
     if(['명동','슈퍼맨'].includes(d.hospId)&&activeAssignedCount(r)>=1)return false;
     if(d.hospId==='명동'&&!(s.fixedRules&&s.fixedRules.some(fr=>fr.hospId==='명동'&&demandLangs(d).includes(fr.lang)&&(!fr.days||fr.days.includes(selectedDay)))))return false;
@@ -1364,7 +1767,7 @@ function renderResult(results,standby,warns,totalAvail,todayLeaves,noInterpHosps
   const shownStandbyCount=Object.values(homeStandby).reduce((sum,list)=>sum+list.length,0);
 
   let html=`
-    <div class="result-divider"><div class="rdline"></div><div class="rdtitle">✨ ${DAYS_KR[selectedDay]}요일 배정 결과</div><div class="rdline"></div></div>
+    <div class="result-divider"><div class="rdline"></div><div class="rdtitle">✨ ${getDateKey()} ${DAYS_KR[selectedDay]}요일 배정 결과</div><div class="rdline"></div></div>
     <div class="stats-row">
       <div class="stat"><span class="stat-n">${totalPts}</span><span class="stat-l">총 환자</span></div>
       <div class="stat"><span class="stat-n">${totalAvail}</span><span class="stat-l">출근</span></div>
@@ -1375,18 +1778,27 @@ function renderResult(results,standby,warns,totalAvail,todayLeaves,noInterpHosps
   if(todayLeaves.length)html+=`<div class="leave-banner show">🏖️ <b>휴무 제외:</b> ${todayLeaves.join(', ')}</div>`;
   if(warns.length)html+=`<div class="warn-box">⚠️ ${warns.join('<br>⚠️ ')}</div>`;
 
-  const textLines=[`[${DAYS_KR[selectedDay]}요일 배정]`,``];
+  const textLines=[`[${getDateKey()} ${DAYS_KR[selectedDay]}요일 배정]`,``];
 
-  const deptMap={};
+  const moveByName={};
   results.forEach(r=>{
     r.assigned.forEach(a=>{
       if(a.isMoved&&a.fromH){
-        if(!deptMap[a.fromH])deptMap[a.fromH]=[];
-        if(!deptMap[a.fromH].some(x=>x.name===a.name&&x.toId===r.demand.hospId)){
-          deptMap[a.fromH].push({name:a.name,toId:r.demand.hospId,toTime:r.demand.times[0]||null});
+        if(!moveByName[a.name])moveByName[a.name]=[];
+        if(!moveByName[a.name].some(x=>x.fromH===a.fromH&&x.toId===r.demand.hospId)){
+          moveByName[a.name].push({name:a.name,fromH:a.fromH,toId:r.demand.hospId,toTime:r.demand.times[0]||null});
         }
       }
     });
+  });
+  const deptMap={};
+  Object.values(moveByName).forEach(list=>{
+    list.sort((a,b)=>(a.toTime?toMin(a.toTime):9999)-(b.toTime?toMin(b.toTime):9999));
+    if(!list.length)return;
+    const start=list[0].fromH;
+    if(!deptMap[start])deptMap[start]=[];
+    const chain=list.map(m=>`${m.toTime?toKoreanTime(m.toTime)+' ':''}${hospTextName(m.toId)}`).join(' -> ');
+    deptMap[start].push({name:list[0].name,chain});
   });
 
   const renderHospitalIds=[...new Set(parsed.filter(p=>!p.hospId.startsWith('__')).map(p=>p.hospId))];
@@ -1449,8 +1861,8 @@ function renderResult(results,standby,warns,totalAvail,todayLeaves,noInterpHosps
     }
 
     (deptMap[hosp.id]||[]).forEach(d=>{
-      const line=`${d.name} -> ${d.toTime?toKoreanTime(d.toTime)+'까지 ':''}${hospTextName(d.toId)}`;
-      html+=`<div class="sline moved"><span class="sname jeong">${d.name}</span><span class="sdetail"><span class="smove">-> ${d.toTime?toKoreanTime(d.toTime)+'까지 ':''}${hospTextName(d.toId)}</span></span></div>`;
+      const line=`${d.name} -> ${d.chain}`;
+      html+=`<div class="sline moved"><span class="sname jeong">${d.name}</span><span class="sdetail"><span class="smove">-> ${d.chain}</span></span></div>`;
       textLines.push(line);
     });
 
@@ -1575,16 +1987,20 @@ function renderStaffTable(){
 }
 
 function deleteStaff(encodedName){
-  const name=decodeURIComponent(encodedName);
-  if(!confirm(`"${name}" 직원을 삭제하시겠습니까?`))return;
-  STAFF=STAFF.filter(s=>s.name!==name);
-  saveStaff();renderStaffTable();
+  withEditAuth(()=>{
+    const name=decodeURIComponent(encodedName);
+    if(!confirm(`"${name}" 직원을 삭제하시겠습니까?`))return;
+    STAFF=STAFF.filter(s=>s.name!==name);
+    saveStaff();renderStaffTable();
+  });
 }
 
 function openAddStaff(){
-  editingStaffName=null;
-  setupStaffEditor(null);
-  document.getElementById('addstaffOverlay').classList.add('show');
+  withEditAuth(()=>{
+    editingStaffName=null;
+    setupStaffEditor(null);
+    document.getElementById('addstaffOverlay').classList.add('show');
+  });
 }
 
 function setupStaffEditor(staff){
@@ -1613,12 +2029,14 @@ function setupStaffEditor(staff){
 }
 
 function openEditStaff(encodedName){
-  const name=decodeURIComponent(encodedName);
-  const staff=STAFF.find(s=>s.name===name);
-  if(!staff)return;
-  editingStaffName=name;
-  setupStaffEditor(staff);
-  document.getElementById('addstaffOverlay').classList.add('show');
+  withEditAuth(()=>{
+    const name=decodeURIComponent(encodedName);
+    const staff=STAFF.find(s=>s.name===name);
+    if(!staff)return;
+    editingStaffName=name;
+    setupStaffEditor(staff);
+    document.getElementById('addstaffOverlay').classList.add('show');
+  });
 }
 
 function closeAddStaff(){document.getElementById('addstaffOverlay').classList.remove('show');editingStaffName=null;}
@@ -1627,7 +2045,9 @@ function renameStaffReferences(oldName,newName){
   if(oldName===newName)return;
   Object.keys(leaveData).forEach(k=>{leaveData[k]=leaveData[k].map(n=>n===oldName?newName:n);});
   Object.values(locksByDay).forEach(list=>list.forEach(l=>{if(l.name===oldName)l.name=newName;}));
-  saveLD();
+  Object.values(locksByDate).forEach(list=>list.forEach(l=>{if(l.name===oldName)l.name=newName;}));
+  permanentLocks.forEach(l=>{if(l.name===oldName)l.name=newName;});
+  saveLD();saveLocks();savePermanentLocks();
 }
 
 function saveNewStaff(){
