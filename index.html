@@ -1375,10 +1375,17 @@ function doGenerate(){
     .filter(x=>x.hospId)
     .map(x=>({name:x.staff.name,hospId:x.hospId,times:[],permanent:true}));
   const todayLocks=[...permanentToday,...dateLocks.filter(l=>!permanentToday.some(p=>p.name===l.name))];
-  const rawDemand=active.map(p=>({
+  const combinedDemandMap={};
+  active.forEach(p=>{
+    const key=`${p.hospId}__${p.lang}`;
+    if(!combinedDemandMap[key])combinedDemandMap[key]={...p,count:0,times:[],allDay:false};
+    combinedDemandMap[key].count+=p.count;
+    combinedDemandMap[key].times=[...new Set([...combinedDemandMap[key].times,...(p.times||[])])].sort();
+    if(!p.times?.length)combinedDemandMap[key].allDay=true;
+  });
+  const rawDemand=Object.values(combinedDemandMap).map(p=>({
     ...p,
     needCount:needCount(p.hospId,p.lang,p.count),
-    allDay:p.times.length===0,
   }));
 
   // 같은 병원 R+U 합산 7명 이하이면 R/U 가능한 1명이 함께 담당
