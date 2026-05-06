@@ -757,12 +757,13 @@ function disableCloud(){
   updateCloudStatus('로컬 저장만 사용합니다.');
 }
 function cloudHeaders(extra={}){
-  return{
+  const headers={
     apikey:cloudConfig.key,
-    Authorization:`Bearer ${cloudConfig.key}`,
     'Content-Type':'application/json',
     ...extra
   };
+  if(cloudConfig.key.startsWith('eyJ'))headers.Authorization=`Bearer ${cloudConfig.key}`;
+  return headers;
 }
 function cloudEndpoint(){
   return`${cloudConfig.url.replace(/\/+$/,'')}/rest/v1/seoul_schedule_state`;
