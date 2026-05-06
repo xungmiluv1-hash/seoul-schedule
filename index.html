@@ -477,6 +477,10 @@ V:1(2시)"></textarea>
 // ══════════ CONSTANTS ══════════
 const DAYS_KR=['월','화','수','목','금','토','일'];
 const WDAYS=['일','월','화','수','목','금','토'];
+const DEFAULT_CLOUD_CONFIG={
+  url:'https://xkpmfmonkozievvokawx.supabase.co',
+  key:''
+};
 const LANG_ALIAS={
   V:'V',T:'T',I:'I',U:'U',P:'P',MY:'MY',YE:'YE',N:'N',CH:'CH',C:'C',
   베트남:'V',베트남어:'V',월남:'V',월남어:'V',
@@ -740,6 +744,11 @@ function loadCloudConfig(){
     const raw=localStorage.getItem('seoulCloudConfig_v1');
     if(raw)cloudConfig=JSON.parse(raw)||{url:'',key:''};
   }catch(e){cloudConfig={url:'',key:''};}
+  if(!cloudConfig.url&&DEFAULT_CLOUD_CONFIG.url)cloudConfig.url=DEFAULT_CLOUD_CONFIG.url;
+  if(!cloudConfig.key&&DEFAULT_CLOUD_CONFIG.key)cloudConfig.key=DEFAULT_CLOUD_CONFIG.key;
+  if(cloudConfig.url&&cloudConfig.key){
+    try{localStorage.setItem('seoulCloudConfig_v1',JSON.stringify(cloudConfig));}catch(e){}
+  }
   cloudReady=!!(cloudConfig.url&&cloudConfig.key);
 }
 function saveCloudConfig(){
