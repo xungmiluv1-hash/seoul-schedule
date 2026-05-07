@@ -50,7 +50,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink)
 .cal-cell:hover{border-color:var(--pink2);background:var(--pink-light);}
 .cal-cell.empty{background:transparent;border-color:transparent;cursor:default;pointer-events:none;}
 .cal-cell.today{border-color:var(--pink);border-width:2px;}
-.cal-cell.thu-cell{background:var(--bg2);opacity:.4;cursor:default;pointer-events:none;}
+.cal-cell.thu-cell{background:var(--bg2);opacity:.45;cursor:pointer;}
+.cal-cell.thu-cell.has-leave{opacity:1;}
 .cal-cell.has-leave{background:linear-gradient(135deg,#fdf4ff,#f0e4f8);border-color:#d8b4fe;}
 .cal-date{font-size:12px;font-weight:700;font-family:'DM Mono',monospace;}
 .cal-date.sun{color:var(--pink);}
@@ -389,7 +390,7 @@ V:1(2시)"></textarea>
     <div class="modal-title">☁️ Supabase 클라우드 저장</div>
     <div class="modal-date">회사 공용 휴무/직원 데이터 연결</div>
     <div class="cloud-box">
-      한 번 연결하면 휴무와 직원 수정 내용이 Supabase에 저장되어 다른 컴퓨터에서도 같은 데이터를 불러올 수 있습니다.
+      한 번 연결되면 휴무/직원/고정 배정 수정 내용은 자동으로 클라우드에 저장됩니다. 다른 기기에서 최신 내용을 가져올 때만 불러오기를 누르세요.
     </div>
     <input class="modal-search" type="text" id="cloudUrlInput" placeholder="Supabase Project URL">
     <input class="modal-search" type="password" id="cloudKeyInput" placeholder="Supabase anon public key">
@@ -884,7 +885,7 @@ function updateCloudStatus(msg='',isErr=false){
     btn.classList.toggle('err',!!isErr);
   }
   const el=document.getElementById('cloudStatusText');
-  if(el)el.textContent=msg||(cloudReady?'Supabase 연결 정보가 저장되어 있습니다.':'현재는 이 브라우저에만 저장됩니다.');
+  if(el)el.textContent=msg||(cloudReady?'연결됨 · 수정 내용은 자동 저장됩니다. 다른 기기에서 시작할 때만 클라우드 불러오기를 누르세요.':'현재는 이 브라우저에만 저장됩니다.');
 }
 
 function seededRand(s){let v=s%99991+1;return()=>{v=Math.sin(v*9301+49297)%233280;return Math.abs(v);};}
@@ -923,7 +924,7 @@ function renderCalendar(){
       const more=leaves.length>3?`<div class="leave-chip">+${leaves.length-3}</div>`:'';
       cell.innerHTML+=`<div class="leave-chips">${chips}${more}</div>`;
     }
-    if(!isThu)cell.onclick=()=>openModal(dk,date);
+    cell.onclick=()=>openModal(dk,date);
     grid.appendChild(cell);
   }
 }
