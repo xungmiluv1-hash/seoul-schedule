@@ -616,8 +616,8 @@ let STAFF=[
   {name:'황수미',  langs:['V'],          days:[0,1,4,5,6],  type:'jeong',fixedRules:[{hospId:'명동',lang:'V',days:[0,1,2,4]},{hospId:'헤라',lang:'V',days:[5,6]}],neverBase:false,mgrHosps:['헤라','니어']},
   {name:'홍주은',  langs:['V'],          days:[0,1,2,4,5],  type:'jeong',fixedRules:[],neverBase:false,mgrHosps:['브라운','안과','닥터송']},
   {name:'한승미',  langs:['V','EN'],     days:[0,1,2,4,5],  type:'jeong',fixedRules:[{hospId:'다정한',lang:'V',days:[0,1,2,4]},{hospId:'슈퍼맨',lang:'V',days:[5]}],neverBase:false,mgrHosps:['슈퍼맨','다정한','오아로','아트라인']},
-  {name:'황은상',  langs:['V'],          days:[0,1,2,4,5,6],type:'jeong',fixedRules:[],neverBase:false},
-  {name:'딘탄튀',  langs:['V'],          days:[0,1,2,4,5,6],type:'jeong',fixedRules:[{hospId:'다정한',lang:'V'}],neverBase:false},
+  {name:'황은상',  langs:['V'],          days:[0,1,2,5,6],  type:'jeong',fixedRules:[],neverBase:false},
+  {name:'딘탄튀',  langs:['V'],          days:[0,1,2,5,6],  type:'jeong',fixedRules:[{hospId:'다정한',lang:'V'}],neverBase:false},
   {name:'김가인',  langs:['V'],          days:[0,1,2,4,5,6],type:'jeong',fixedRules:[{hospId:'다정한',lang:'V'}],neverBase:false},
   // Indonesia
   {name:'리안',    langs:['I'],          days:[0,1,2,4,5,6],type:'jeong',fixedRules:[],preferNear:true,neverBase:false,neverHosps:['헤라']},
@@ -632,24 +632,25 @@ let STAFF=[
   {name:'청하',    langs:['MY'],         days:[0,1,2,4,5,6],type:'jeong',fixedRules:[],neverBase:false},
   // Uzbekistan / Central Asia
   {name:'닐료',    langs:['U','R','KZ','KY'],days:[0,1,2,4,5,6],type:'jeong',fixedRules:[],preferBase:true,neverBase:false,neverHosps:['슈퍼맨']},
-  {name:'디아나',  langs:['U','R','KZ','KY'],days:[0,4,5,6],    type:'jeong',fixedRules:[],preferBase:true,neverBase:false,neverHosps:['슈퍼맨']},
-  {name:'리솔랏',  langs:['U','R','KZ','KY'],days:[0,1,2,4,5,6],type:'jeong',fixedRules:[{hospId:'다정한',lang:'R'},{hospId:'다정한',lang:'U'}],preferBase:true,neverBase:false,neverHosps:['슈퍼맨']},
+  {name:'디아나',  langs:['U','R','KZ','KY'],days:[0,4,6],      type:'jeong',fixedRules:[],preferBase:true,neverBase:false,neverHosps:['슈퍼맨']},
+  {name:'리솔랏',  langs:['U','R','KZ','KY'],days:[0,1,2,5,6],  type:'jeong',fixedRules:[{hospId:'다정한',lang:'R'},{hospId:'다정한',lang:'U'}],preferBase:true,neverBase:false,neverHosps:['슈퍼맨']},
   // Russia — never 브라운, prefer 니어
   {name:'유이리나5',langs:['R'],         days:[1,2,4,5,6],  type:'jeong',fixedRules:[],neverBase:true,preferNear:true},
   // Philippines
   {name:'아일린',  langs:['P','EN'],     days:[0,1,4,5,6],  type:'jeong',fixedRules:[],preferBase:true,neverBase:false},
   {name:'권마리',  langs:['P','EN'],     days:[0,1,4,5,6],  type:'jeong',fixedRules:[],preferBase:true,neverBase:false},
-  {name:'에드나',  langs:['P','EN'],     days:[0,4,5,6],    type:'jeong',fixedRules:[],preferBase:true,neverBase:false},
-  // 알바 weekends
+  {name:'에드나',  langs:['P','EN'],     days:[0,1,2,5,6],  type:'jeong',fixedRules:[],preferBase:true,neverBase:false},
+  // 알바 근무표 기준
+  {name:'마이홍',  langs:['V'],          days:[5,6],type:'alba',fixedRules:[],neverBase:false},
   {name:'딘티안',  langs:['V'],          days:[5,6],type:'alba',fixedRules:[],neverBase:false},
-  {name:'헬레나',  langs:['I'],          days:[5],  type:'alba',fixedRules:[{hospId:'니어',lang:'I'}],preferNear:true,neverBase:false},
+  {name:'헬레나',  langs:['I'],          days:[3,4],type:'alba',fixedRules:[{hospId:'니어',lang:'I'}],preferNear:true,neverBase:false},
   {name:'난타나',  langs:['T'],          days:[5,6],type:'alba',fixedRules:[],neverBase:false},
   {name:'문지영',  langs:['T'],          days:[5,6],type:'alba',fixedRules:[{hospId:'브라운',lang:'T'}],neverBase:false,preferBase:true,fixedBase:'브라운'},
   {name:'항다르마',langs:['MG'],         days:[0,5,6],type:'alba',fixedRules:[],neverBase:true,preferNear:true},
   {name:'안예진',  langs:['YE'],         days:[5,6],type:'alba',fixedRules:[],neverBase:false},
   {name:'닌누이',  langs:['MY'],         days:[4,5],type:'alba',fixedRules:[],neverBase:false},
   {name:'카잉툰',  langs:['MY'],         days:[0,5,6],type:'alba',fixedRules:[],neverBase:false},
-  {name:'자리나',  langs:['U'],          days:[5,6],type:'alba',fixedRules:[],preferBase:true,neverBase:false,neverHosps:['슈퍼맨']},
+  {name:'자리나',  langs:['U'],          days:[1,4,5],type:'alba',fixedRules:[],preferBase:true,neverBase:false,neverHosps:['슈퍼맨']},
   {name:'나르샤',  langs:['U'],          days:[5,6],type:'alba',fixedRules:[],preferBase:true,neverBase:false,neverHosps:['슈퍼맨']},
   {name:'최나경',  langs:['C'],          days:[5,6],type:'alba',fixedRules:[],neverBase:false},
   {name:'김미나',  langs:['C'],          days:[5,6],type:'alba',fixedRules:[],neverBase:false},
@@ -781,7 +782,33 @@ function closeAuthModal(runPending=false){
   if(runPending&&action)action();
 }
 function normalizeStaffRules(){
+  const existingNames=new Set(STAFF.map(s=>s.name));
+  STAFF_DEFAULT.forEach(s=>{
+    if(!existingNames.has(s.name))STAFF.push(JSON.parse(JSON.stringify(s)));
+  });
+  const byName=new Map();
+  STAFF=STAFF.filter(s=>{
+    if(!s?.name)return false;
+    const existing=byName.get(s.name);
+    if(!existing){byName.set(s.name,s);return true;}
+    existing.langs=[...new Set([...(existing.langs||[]),...(s.langs||[])])];
+    existing.days=[...new Set([...(existing.days||[]),...(s.days||[])])].sort((a,b)=>a-b);
+    existing.fixedRules=[...((existing.fixedRules)||[]),...((s.fixedRules)||[])];
+    existing.fixedRules=existing.fixedRules.filter((r,i,a)=>a.findIndex(x=>x.hospId===r.hospId&&x.lang===r.lang&&JSON.stringify(x.days||[])===JSON.stringify(r.days||[]))===i);
+    existing.neverHosps=[...new Set([...(existing.neverHosps||[]),...(s.neverHosps||[])])];
+    existing.mgrHosps=[...new Set([...(existing.mgrHosps||[]),...(s.mgrHosps||[])])];
+    return false;
+  });
   const patch=(name,updates)=>{const s=STAFF.find(x=>x.name===name);if(s)Object.assign(s,updates);};
+  const canonicalDays={
+    한미영:[0,1,2,4,5,6],최연이:[0,1,2,4,5,6],아루니:[0,1,4,5,6],추티마:[0,1,2,4,5,6],시라다:[0,2,4,5,6],아몬팀:[0,1,5,6],
+    황수미:[0,1,4,5,6],홍주은:[0,1,2,4,5],한승미:[0,1,2,4,5],황은상:[0,1,2,5,6],딘탄튀:[0,1,2,5,6],김가인:[0,1,2,4,5,6],
+    리안:[0,1,2,4,5,6],아정:[0,1,4,5,6],빈우:[0,1,4,5,6],김혜진:[0,1,4,5,6],김예린:[0,4,5,6],중순:[2,4,5,6],청하:[0,1,2,4,5,6],
+    닐료:[0,1,2,4,5,6],디아나:[0,4,6],리솔랏:[0,1,2,5,6],유이리나5:[1,2,4,5,6],아일린:[0,1,4,5,6],권마리:[0,1,4,5,6],에드나:[0,1,2,5,6],
+    마이홍:[5,6],딘티안:[5,6],헬레나:[3,4],난타나:[5,6],문지영:[5,6],항다르마:[0,5,6],안예진:[5,6],닌누이:[4,5],카잉툰:[0,5,6],
+    자리나:[1,4,5],나르샤:[5,6],최나경:[5,6],김미나:[5,6],아스미타:[5]
+  };
+  Object.entries(canonicalDays).forEach(([name,days])=>patch(name,{days}));
   patch('한미영',{langs:['T'],fixedRules:[{hospId:'명동',lang:'T'}],neverBase:false,fixedBase:'명동'});
   patch('아루니',{langs:['T'],fixedRules:[{hospId:'아트라인',lang:'T'}],alwaysFixed:true,neverBase:false});
   patch('중순',{langs:['C','P','EN'],neverHosps:['헤라']});
@@ -797,6 +824,14 @@ function normalizeStaffRules(){
     s.langs=[...new Set([...(s.langs||[]),'U','R','KZ','KY'])];
   });
   saveStaff();
+}
+function uniqueStaffByName(list){
+  const seen=new Set();
+  return list.filter(s=>{
+    if(!s?.name||seen.has(s.name))return false;
+    seen.add(s.name);
+    return true;
+  });
 }
 function resetStaff(){withEditAuth(()=>{if(!confirm('직원 명단을 기본값으로 복원하시겠습니까?\n(추가하신 직원도 모두 삭제됩니다)'))return;STAFF=JSON.parse(JSON.stringify(STAFF_DEFAULT));saveStaff('직원 명단 기본값 복원');renderStaffTable();});}
 
@@ -1548,6 +1583,7 @@ function doGenerate(){
     if(todayLeaves.includes(s.name))return false;
     return true;
   });
+  availPool=uniqueStaffByName(availPool);
   availPool=shuffleSeeded(availPool,seed);
 
   const active=parsed.filter(p=>{
@@ -2023,6 +2059,12 @@ function renderResult(results,standby,warns,totalAvail,todayLeaves,noInterpHosps
   if(warns.length)html+=`<div class="warn-box">⚠️ ${warns.join('<br>⚠️ ')}</div>`;
 
   const textLines=[`[${getDateKey()} ${DAYS_KR[selectedDay]}요일 배정]`,``];
+  const textStaffNames=new Set();
+  const pushStaffText=(name,line)=>{
+    if(!name||textStaffNames.has(name))return;
+    textStaffNames.add(name);
+    textLines.push(line);
+  };
 
   const moveByName={};
   results.forEach(r=>{
@@ -2107,7 +2149,7 @@ function renderResult(results,standby,warns,totalAvail,todayLeaves,noInterpHosps
     (deptMap[hosp.id]||[]).forEach(d=>{
       const line=`${d.name} -> ${d.chain}`;
       html+=`<div class="sline moved"><span class="sname jeong">${d.name}</span><span class="sdetail"><span class="smove">-> ${d.chain}</span></span></div>`;
-      textLines.push(line);
+      pushStaffText(d.name,line);
     });
 
     Object.values(sm).forEach(s=>{
@@ -2135,7 +2177,7 @@ function renderResult(results,standby,warns,totalAvail,todayLeaves,noInterpHosps
       html+=`<div class="sline ${rc}"><span class="sname ${nc}">${s.name}</span>${parts.length?`<span class="sdetail">(${parts.join(' · ')})</span>`:''}</div>`;
 
       const movedOnly=s.slots.length>0&&s.slots.every(sl=>sl.isMoved);
-      if(!movedOnly)textLines.push(staffTextLine(s));
+      if(!movedOnly)pushStaffText(s.name,staffTextLine(s));
     });
 
     // No-staff with phone memo
@@ -2176,7 +2218,8 @@ function renderResult(results,standby,warns,totalAvail,todayLeaves,noInterpHosps
       let parts=[];if(at.length)parts.push(at.join('/'));if(mv.length)parts.push(`<span class="smove">${[...new Set(mv.map(sl=>sl.fromH))].join('/')}에서 이동</span>`);if(aLk)parts.push(`<span class="slock-badge">🔒고정</span>`);if(aMgr)parts.push(`<span class="smgr-badge">👑팀장</span>`);if(aEn)parts.push(`<span class="seng-badge">🌐영어</span>`);
       const rc=aLk?'locked':aMgr?'mgr':aMv?'moved':aEn?'english':'';const nc=aLk?'locked-name':aMgr?'mgr-name':cc;
       html+=`<div class="sline ${rc}"><span class="sname ${nc}">${s.name}</span>${parts.length?`<span class="sdetail">(${parts.join(' · ')})</span>`:''}</div>`;
-      textLines.push(s.name);
+      const movedOnly=s.slots.length>0&&s.slots.every(sl=>sl.isMoved);
+      if(!movedOnly)pushStaffText(s.name,s.name);
     });
     hr.filter(r=>r.noStaff&&!supportCoversResultDemand(r.demand)).forEach(r=>{const l=LANGS[r.demand.lang]||{flag:'?',name:r.demand.lang};const langName=demandLangName(r);html+=`<div class="sline nostaf"><span class="sname jeong">⚠️ ${l.flag} ${r.demand.lang}</span><span class="sdetail smemo">배정 불가</span></div>`;textLines.push(`⚠️ ${langName} — 배정 불가`);});
     (supportersByDay[selectedDay]||[]).filter(s=>s.hospId===id).forEach(s=>{const l=s.lang?LANGS[s.lang]:null;html+=`<div class="sline" style="background:#fff7ed;border-left:3px solid #c2410c"><span class="sname" style="color:#c2410c">${s.name}</span><span class="sdetail"><span style="font-size:10px;background:#c2410c;color:#fff;padding:1px 6px;border-radius:8px;font-weight:700">🆘지원</span>${l?` <span style="font-size:10px;background:${l.bg};color:${l.color};padding:1px 6px;border-radius:8px;font-weight:700">${l.flag}${s.lang}</span>`:''}</span></div>`;textLines.push(s.lang?`${s.name} (${s.lang})`:s.name);});
@@ -2201,8 +2244,8 @@ function renderStaffTable(){
   const area=document.getElementById('staffTableArea');
   if(!area)return;
   const q=(document.getElementById('staffSearch')?.value||'').trim();
-  const didx=[0,1,2,4,5,6];
-  const dkeys=['월','화','수','금','토','일'];
+  const didx=[0,1,2,3,4,5,6];
+  const dkeys=['월','화','수','목','금','토','일'];
   const groups=[{label:'정직원',key:'jeong'},{label:'알바',key:'alba'}];
   let html='';
   groups.forEach(g=>{
@@ -2250,7 +2293,7 @@ function openAddStaff(){
 function setupStaffEditor(staff){
   const langHtml=Object.entries(LANGS).map(([k,v])=>`<label class="as-pill"><input type="checkbox" value="${k}"><span>${v.flag} ${k}</span></label>`).join('');
   document.getElementById('as_langs').innerHTML=langHtml;
-  const dayPairs=[[0,'월'],[1,'화'],[2,'수'],[4,'금'],[5,'토'],[6,'일']];
+  const dayPairs=[[0,'월'],[1,'화'],[2,'수'],[3,'목'],[4,'금'],[5,'토'],[6,'일']];
   const dayHtml=dayPairs.map(([d,n])=>`<label class="as-pill"><input type="checkbox" value="${d}"><span>${n}</span></label>`).join('');
   document.getElementById('as_days').innerHTML=dayHtml;
   document.getElementById('as_prefs').innerHTML=`
