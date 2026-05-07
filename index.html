@@ -307,7 +307,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink)
       <div class="staff-sec-hdr">
         <span class="staff-sec-title">👥 통역사·직원 명단</span>
         <div class="staff-search-wrap">
-          <input class="staff-search" type="search" id="staffSearch" placeholder="직원 이름/언어 검색" autocomplete="off" spellcheck="false" oninput="renderStaffTable()">
+          <input class="staff-search" type="search" id="staffSearch" placeholder="직원 이름/언어 검색" autocomplete="new-password" autocapitalize="off" spellcheck="false" onfocus="sanitizeStaffSearch();renderStaffTable()" oninput="sanitizeStaffSearch();renderStaffTable()" onchange="sanitizeStaffSearch();renderStaffTable()">
           <button class="staff-search-btn" onclick="renderStaffTable()">검색</button>
         </div>
         <button class="add-staff-btn" onclick="openAddStaff()">+ 직원 추가</button>
@@ -688,7 +688,10 @@ window.onload=()=>{
   normalizeStaffRules();
   loadCloudConfig();
   renderCalendar();
+  const staffSearch=document.getElementById('staffSearch');
+  if(staffSearch)staffSearch.value='';
   renderStaffTable();
+  [80,400,1200].forEach(ms=>setTimeout(()=>{sanitizeStaffSearch();renderStaffTable();},ms));
   loadLocks();
   loadPermanentLocks();
   updateCloudStatus();
@@ -2263,6 +2266,19 @@ function renderResult(results,standby,warns,totalAvail,todayLeaves,noInterpHosps
 }
 
 // ══════════ STAFF TABLE ══════════
+function isLikelyUrlSearch(v){
+  return /^https?:\/\//i.test(v)||/^www\./i.test(v)||/^[a-z][a-z0-9+.-]*:\/\//i.test(v);
+}
+function sanitizeStaffSearch(){
+  const input=document.getElementById('staffSearch');
+  if(!input)return '';
+  const q=(input.value||'').trim();
+  if(isLikelyUrlSearch(q)){
+    input.value='';
+    return '';
+  }
+  return q;
+}
 function clearStaffSearch(){
   const input=document.getElementById('staffSearch');
   if(input)input.value='';
@@ -2271,12 +2287,7 @@ function clearStaffSearch(){
 function renderStaffTable(){
   const area=document.getElementById('staffTableArea');
   if(!area)return;
-  const searchEl=document.getElementById('staffSearch');
-  let q=(searchEl?.value||'').trim();
-  if(/^https?:\/\//i.test(q)){
-    q='';
-    if(searchEl)searchEl.value='';
-  }
+  const q=sanitizeStaffSearch();
   const didx=[0,1,2,3,4,5,6];
   const dkeys=['월','화','수','목','금','토','일'];
   const groups=[{label:'정직원',key:'jeong'},{label:'알바',key:'alba'}];
