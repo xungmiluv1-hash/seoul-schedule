@@ -189,10 +189,14 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink)
 .staff-section{margin-top:28px;padding-top:22px;border-top:2px solid var(--border);}
 .staff-sec-hdr{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;}
 .staff-sec-title{font-size:12px;font-weight:700;letter-spacing:2px;color:var(--ink2);text-transform:uppercase;font-family:'DM Mono',monospace;}
-.staff-search{padding:6px 12px;border:1px solid var(--border2);border-radius:20px;font-family:'Noto Sans KR',sans-serif;font-size:12px;outline:none;background:var(--bg2);width:140px;}
+.staff-search-wrap{display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+.staff-search{padding:8px 13px;border:1px solid var(--border2);border-radius:20px;font-family:'Noto Sans KR',sans-serif;font-size:13px;outline:none;background:var(--bg2);width:190px;}
 .staff-search:focus{border-color:var(--pink);background:var(--surface);}
-.staff-reset-btn{padding:6px 12px;background:var(--bg2);border:1px solid var(--border2);border-radius:20px;color:var(--ink3);font-size:11px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;}
-.staff-reset-btn:hover{background:var(--pink-light);color:var(--pink);border-color:var(--pink);}
+.staff-search-btn{padding:8px 14px;background:var(--navy);border:1px solid var(--navy);border-radius:20px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;}
+.staff-search-btn:hover{background:var(--navy2);border-color:var(--navy2);}
+.staff-clear-btn{padding:7px 11px;background:var(--surface);border:1px solid var(--border2);border-radius:20px;color:var(--ink3);font-size:11px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;}
+.staff-clear-btn:hover{background:var(--navy-light);color:var(--navy2);border-color:#bfdbfe;}
+.staff-empty{font-size:12px;color:var(--ink3);padding:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 .add-staff-btn{margin-left:auto;padding:7px 16px;background:linear-gradient(135deg,var(--navy),var(--navy2));border:none;border-radius:20px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;}
 .add-staff-btn:hover{opacity:.85;}
 .staff-grp{margin-bottom:10px;}
@@ -302,8 +306,10 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink)
     <div class="staff-section">
       <div class="staff-sec-hdr">
         <span class="staff-sec-title">👥 통역사·직원 명단</span>
-        <input class="staff-search" type="text" id="staffSearch" placeholder="이름 검색..." oninput="renderStaffTable()">
-        <button class="staff-reset-btn" onclick="resetStaff()">기본값 복원</button>
+        <div class="staff-search-wrap">
+          <input class="staff-search" type="search" id="staffSearch" placeholder="직원 이름/언어 검색" autocomplete="off" spellcheck="false" oninput="renderStaffTable()">
+          <button class="staff-search-btn" onclick="renderStaffTable()">검색</button>
+        </div>
         <button class="add-staff-btn" onclick="openAddStaff()">+ 직원 추가</button>
       </div>
       <div id="staffTableArea"></div>
@@ -2257,10 +2263,20 @@ function renderResult(results,standby,warns,totalAvail,todayLeaves,noInterpHosps
 }
 
 // ══════════ STAFF TABLE ══════════
+function clearStaffSearch(){
+  const input=document.getElementById('staffSearch');
+  if(input)input.value='';
+  renderStaffTable();
+}
 function renderStaffTable(){
   const area=document.getElementById('staffTableArea');
   if(!area)return;
-  const q=(document.getElementById('staffSearch')?.value||'').trim();
+  const searchEl=document.getElementById('staffSearch');
+  let q=(searchEl?.value||'').trim();
+  if(/^https?:\/\//i.test(q)){
+    q='';
+    if(searchEl)searchEl.value='';
+  }
   const didx=[0,1,2,3,4,5,6];
   const dkeys=['월','화','수','목','금','토','일'];
   const groups=[{label:'정직원',key:'jeong'},{label:'알바',key:'alba'}];
@@ -2288,7 +2304,7 @@ function renderStaffTable(){
     });
     html+='</div></div>';
   });
-  if(!html)html='<div style="font-size:12px;color:var(--ink3);padding:8px">검색 결과 없음</div>';
+  if(!html)html=`<div class="staff-empty"><span>검색 결과 없음</span>${q?`<button class="staff-clear-btn" onclick="clearStaffSearch()">전체 보기</button>`:''}</div>`;
   area.innerHTML=html;
 }
 
