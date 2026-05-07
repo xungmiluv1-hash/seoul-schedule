@@ -782,6 +782,7 @@ function closeAuthModal(runPending=false){
   if(runPending&&action)action();
 }
 function normalizeStaffRules(){
+  const defaultByName=new Map(STAFF_DEFAULT.map(s=>[s.name,s]));
   const existingNames=new Set(STAFF.map(s=>s.name));
   STAFF_DEFAULT.forEach(s=>{
     if(!existingNames.has(s.name))STAFF.push(JSON.parse(JSON.stringify(s)));
@@ -798,6 +799,22 @@ function normalizeStaffRules(){
     existing.neverHosps=[...new Set([...(existing.neverHosps||[]),...(s.neverHosps||[])])];
     existing.mgrHosps=[...new Set([...(existing.mgrHosps||[]),...(s.mgrHosps||[])])];
     return false;
+  });
+  STAFF.forEach(s=>{
+    const base=defaultByName.get(s.name);
+    if(base){
+      if(!Array.isArray(s.langs)||!s.langs.length)s.langs=[...(base.langs||[])];
+      if(!Array.isArray(s.days)||!s.days.length)s.days=[...(base.days||[])];
+      if(!s.type)s.type=base.type||'jeong';
+      if(!Array.isArray(s.fixedRules))s.fixedRules=[...(base.fixedRules||[])];
+      if(!Array.isArray(s.neverHosps)&&Array.isArray(base.neverHosps))s.neverHosps=[...base.neverHosps];
+      if(!Array.isArray(s.mgrHosps)&&Array.isArray(base.mgrHosps))s.mgrHosps=[...base.mgrHosps];
+    }else{
+      if(!Array.isArray(s.langs))s.langs=[];
+      if(!Array.isArray(s.days))s.days=[];
+      if(!s.type)s.type='jeong';
+      if(!Array.isArray(s.fixedRules))s.fixedRules=[];
+    }
   });
   const patch=(name,updates)=>{const s=STAFF.find(x=>x.name===name);if(s)Object.assign(s,updates);};
   const canonicalDays={
@@ -1579,7 +1596,7 @@ function doGenerate(){
 
   // Filter staff
   let availPool=STAFF.filter(s=>{
-    if(!s.days.includes(selectedDay))return false;
+    if(!Array.isArray(s.days)||!s.days.includes(selectedDay))return false;
     if(todayLeaves.includes(s.name))return false;
     return true;
   });
@@ -2253,8 +2270,10 @@ function renderStaffTable(){
     if(!members.length)return;
     html+=`<div class="staff-grp"><div class="staff-grp-hdr"><span>${g.label==='정직원'?'🏢 정직원':'🌟 알바'}</span><span class="staff-cnt">${members.length}명</span></div><div class="staff-grid">`;
     members.forEach(s=>{
-      const langHtml=s.langs.map(l=>{const li=LANGS[l]||{flag:'?',color:'#666',bg:'#eee'};return`<span class="sr-lang" style="background:${li.bg};color:${li.color}">${li.flag}${l}</span>`;}).join('');
-      const daysHtml=didx.map((d,i)=>`<span class="sr-d ${s.days.includes(d)?'on':'off'}">${dkeys[i]}</span>`).join('');
+      const langs=Array.isArray(s.langs)?s.langs:[];
+      const days=Array.isArray(s.days)?s.days:[];
+      const langHtml=langs.map(l=>{const li=LANGS[l]||{flag:'?',color:'#666',bg:'#eee'};return`<span class="sr-lang" style="background:${li.bg};color:${li.color}">${li.flag}${l}</span>`;}).join('');
+      const daysHtml=didx.map((d,i)=>`<span class="sr-d ${days.includes(d)?'on':'off'}">${dkeys[i]}</span>`).join('');
       const notes=[];
       if(s.neverBase)notes.push('브라운❌');
       if(s.neverHosps?.length)notes.push(s.neverHosps.map(h=>h+'❌').join(''));
