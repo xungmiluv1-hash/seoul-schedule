@@ -16,10 +16,12 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;}
 .hdr{background:linear-gradient(135deg,var(--navy) 0%,var(--navy2) 60%,#5b3d9e 100%);color:#fff;padding:14px 24px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(30,45,110,.25);}
-.hdr-logo{font-size:19px;font-weight:900;letter-spacing:-.5px;}
+.hdr-brand{min-width:0;flex:1;}
+.hdr-logo{font-size:19px;font-weight:900;letter-spacing:-.5px;white-space:nowrap;}
 .hdr-logo em{color:var(--pink2);font-style:normal;}
 .hdr-sub{font-size:10px;color:rgba(255,255,255,.45);font-family:'DM Mono',monospace;margin-top:1px;}
 .hdr-day{margin-left:auto;font-family:'DM Mono',monospace;font-size:12px;background:var(--pink);color:#fff;padding:5px 14px;border-radius:20px;font-weight:700;}
+.hdr-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;flex-shrink:0;}
 .tabbar{background:var(--surface);border-bottom:2px solid var(--border);padding:0 24px;display:flex;position:sticky;top:54px;z-index:90;}
 .tab{padding:11px 22px;font-size:12px;font-weight:700;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;color:var(--ink3);transition:all .15s;user-select:none;}
 .tab:hover{color:var(--pink);background:var(--pink-light);}
@@ -227,6 +229,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink)
 .closed-badge{font-size:10px;background:#fca5a5;color:#991b1b;padding:2px 8px;border-radius:10px;font-weight:700;}
 .cloud-btn{border:none;background:#fff;color:var(--navy);border-radius:20px;padding:8px 13px;font-family:'Noto Sans KR',sans-serif;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 6px 18px rgba(15,23,42,.16);}
 .cloud-btn.on{background:#ecfdf5;color:#047857;}
+.cloud-btn.pending{background:#fffbeb;color:#b45309;}
+.cloud-btn.saving{background:#eff6ff;color:#1d4ed8;}
 .cloud-btn.err{background:#fef2f2;color:#b91c1c;}
 .cloud-box{background:var(--bg);border:1px solid var(--border2);border-radius:10px;padding:10px;margin:8px 0;font-size:12px;color:var(--ink2);}
 .cloud-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;}
@@ -237,12 +241,21 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink)
 .auth-error{display:none;color:var(--red);font-size:11px;font-weight:700;margin:-4px 0 8px 3px;}
 .auth-error.show{display:block;}
 .small-lock-title{font-size:10px;font-weight:800;color:var(--ink3);letter-spacing:1.6px;text-transform:uppercase;margin:12px 0 7px;font-family:'DM Mono',monospace;}
+@media(max-width:520px){
+  .hdr{padding:12px 14px;gap:8px;}
+  .hdr-logo{font-size:16px;letter-spacing:0;}
+  .hdr-sub{display:none;}
+  .hdr-actions{gap:5px;}
+  .hdr-day{font-size:10px;padding:5px 8px;}
+  .cloud-btn{font-size:10px;padding:6px 9px;}
+  .tabbar{top:48px;}
+}
 </style>
 </head>
 <body>
 <div class="hdr">
-  <div><div class="hdr-logo">서울인력 <em>스케줄</em></div><div class="hdr-sub">통역사 자동 배정 시스템 v10</div></div>
-  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+  <div class="hdr-brand"><div class="hdr-logo">서울인력 <em>스케줄</em></div><div class="hdr-sub">통역사 자동 배정 시스템 v10</div></div>
+  <div class="hdr-actions">
     <button class="cloud-btn" id="cloudBtn" onclick="openCloudModal()">☁️ 로컬</button>
     <div class="hdr-day" id="dayDisplay">요일 선택</div>
   </div>
@@ -630,7 +643,7 @@ let permanentLocks=[];
 let leaveData={};
 let pendingNewOldData={};
 let cloudConfig={url:'',key:''};
-let cloudReady=false,cloudSaving=false,cloudSaveTimer=null,suppressCloudSave=false;
+let cloudReady=false,cloudSaving=false,cloudSaveTimer=null,suppressCloudSave=false,cloudStatusMode='local';
 let editAuthorizedName=sessionStorage.getItem('seoulEditorName')||'';
 let pendingAuthAction=null,pendingAuthElement=null;
 
@@ -757,14 +770,14 @@ function saveCloudConfig(){
   cloudConfig.key=document.getElementById('cloudKeyInput').value.trim();
   localStorage.setItem('seoulCloudConfig_v1',JSON.stringify(cloudConfig));
   cloudReady=!!(cloudConfig.url&&cloudConfig.key);
-  updateCloudStatus(cloudReady?'연결 정보 저장됨':'연결 정보가 비어 있습니다.');
+  updateCloudStatus(cloudReady?'연결 정보 저장됨':'연결 정보가 비어 있습니다.',false,cloudReady?'ready':'local');
   if(cloudReady)pullCloudState({silent:false});
 }
 function disableCloud(){
   if(!confirm('이 브라우저에서 클라우드 연결을 해제할까요? 데이터는 Supabase에서 삭제되지 않습니다.'))return;
   localStorage.removeItem('seoulCloudConfig_v1');
   cloudConfig={url:'',key:''};cloudReady=false;
-  updateCloudStatus('로컬 저장만 사용합니다.');
+  updateCloudStatus('로컬 저장만 사용합니다.',false,'local');
 }
 function cloudHeaders(extra={},mode='auto'){
   const headers={
@@ -824,28 +837,29 @@ function applyCloudData(data){
 }
 async function pullCloudState({silent=false}={}){
   if(!cloudReady)return;
-  updateCloudStatus('클라우드 데이터 불러오는 중...');
+  updateCloudStatus('클라우드 데이터 불러오는 중...',false,'loading');
   try{
     const res=await cloudFetch(`${cloudEndpoint()}?id=eq.global&select=data,updated_at`);
     if(!res.ok)throw new Error(await cloudErrorText(res));
     const rows=await res.json();
     if(rows?.[0]?.data){
       applyCloudData(rows[0].data);
-      updateCloudStatus(`클라우드 연결됨 · 마지막 불러오기 ${new Date().toLocaleTimeString('ko-KR')}`);
+      updateCloudStatus(`클라우드 연결됨 · 마지막 불러오기 ${new Date().toLocaleTimeString('ko-KR')}`,false,'ready');
     }else{
       await pushCloudState({silent:true});
-      updateCloudStatus('클라우드에 초기 데이터를 생성했습니다.');
+      updateCloudStatus('클라우드에 초기 데이터를 생성했습니다.',false,'saved');
     }
   }catch(e){
     const msg=`클라우드 불러오기 실패: ${e.message||'Supabase 설정을 확인하세요.'}`;
-    updateCloudStatus(msg,true);
+    updateCloudStatus(msg,true,'err');
     if(!silent)alert(msg);
   }
 }
 async function pushCloudState({silent=false}={}){
-  if(!cloudReady||cloudSaving)return;
+  if(!cloudReady)return;
+  if(cloudSaving){scheduleCloudSave();return;}
   cloudSaving=true;
-  updateCloudStatus('클라우드 저장 중...');
+  updateCloudStatus('클라우드 저장 중...',false,'saving');
   try{
     const res=await cloudFetch(cloudEndpoint(),{
       method:'POST',
@@ -853,16 +867,17 @@ async function pushCloudState({silent=false}={}){
       body:JSON.stringify(cloudPayload())
     });
     if(!res.ok)throw new Error(await cloudErrorText(res));
-    updateCloudStatus(`클라우드 저장됨 · ${new Date().toLocaleTimeString('ko-KR')}`);
+    updateCloudStatus(`클라우드 저장됨 · ${new Date().toLocaleTimeString('ko-KR')}`,false,'saved');
   }catch(e){
     const msg=`클라우드 저장 실패: ${e.message||'Supabase 설정을 확인하세요.'}`;
-    updateCloudStatus(msg,true);
+    updateCloudStatus(msg,true,'err');
     if(!silent)alert(msg);
   }finally{cloudSaving=false;}
 }
 function scheduleCloudSave(){
   if(suppressCloudSave||!cloudReady)return;
   clearTimeout(cloudSaveTimer);
+  updateCloudStatus('수정됨 · 잠시 후 자동 저장됩니다.',false,'pending');
   cloudSaveTimer=setTimeout(()=>pushCloudState({silent:true}),600);
 }
 function openCloudModal(){
@@ -877,12 +892,18 @@ function pushCloudNow(){
   if(!cloudReady){alert('먼저 Supabase URL과 anon key를 저장하세요.');return;}
   if(confirm('현재 이 브라우저의 휴무/직원 데이터를 클라우드에 올릴까요?'))pushCloudState({silent:false});
 }
-function updateCloudStatus(msg='',isErr=false){
+function updateCloudStatus(msg='',isErr=false,mode=''){
   const btn=document.getElementById('cloudBtn');
+  const currentMode=isErr?'err':(mode||(cloudReady?cloudStatusMode:'local'));
+  cloudStatusMode=currentMode;
   if(btn){
-    btn.textContent=cloudReady?(isErr?'☁️ 오류':'☁️ 연결됨'):'☁️ 로컬';
-    btn.classList.toggle('on',cloudReady&&!isErr);
-    btn.classList.toggle('err',!!isErr);
+    const labels={local:'☁️ 로컬',ready:'☁️ 자동저장',loading:'☁️ 불러오는 중',pending:'☁️ 저장 대기',saving:'☁️ 저장 중',saved:'☁️ 저장됨',err:'☁️ 오류'};
+    btn.textContent=labels[currentMode]||labels.ready;
+    btn.classList.toggle('on',cloudReady&&!['err','pending','saving','loading','local'].includes(currentMode));
+    btn.classList.toggle('pending',cloudReady&&currentMode==='pending');
+    btn.classList.toggle('saving',cloudReady&&(currentMode==='saving'||currentMode==='loading'));
+    btn.classList.toggle('err',currentMode==='err');
+    btn.title=msg||(cloudReady?'수정 내용은 자동 저장됩니다.':'현재는 이 브라우저에만 저장됩니다.');
   }
   const el=document.getElementById('cloudStatusText');
   if(el)el.textContent=msg||(cloudReady?'연결됨 · 수정 내용은 자동 저장됩니다. 다른 기기에서 시작할 때만 클라우드 불러오기를 누르세요.':'현재는 이 브라우저에만 저장됩니다.');
