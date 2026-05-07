@@ -2634,18 +2634,23 @@ function askBunny(){
 }
 function quickAsk(btn){
   const map={
-    '🌟 처음 사용법':'처음 사용하는데 어떻게 해요?',
-    '📋 스케줄 입력':'스케줄 어떻게 입력해요?',
-    '🌏 언어 코드':'언어 코드가 뭐예요?',
-    '📲 카톡 보내기':'결과를 카톡에 보내려면?',
-    '📅 휴무 등록':'휴무는 어떻게 등록해요?',
-    '🔒 고정 배정':'고정 배정은 어떻게 해요?',
-    '🏥 병원 목록':'병원 목록이 어떻게 돼요?',
-    '🚶 이동 시간':'병원 이동 시간이 어떻게 돼요?',
+    '🌟 처음 사용법':{q:'처음 사용법 알려주세요',idx:0},
+    '📋 스케줄 입력':{q:'스케줄 입력 방법',idx:2},
+    '🌏 언어 코드':{q:'언어 코드 알려주세요',idx:3},
+    '📲 카톡 보내기':{q:'카톡으로 결과 보내기',idx:5},
+    '📅 휴무 등록':{q:'휴무 등록 방법',idx:6},
+    '🔒 고정 배정':{q:'고정 배정 방법',idx:7},
+    '🏥 병원 목록':{q:'병원 목록',idx:8},
+    '🚶 이동 시간':{q:'이동 시간',idx:9},
   };
-  const q=map[btn.textContent.trim()]||btn.textContent;
-  addChatMsg('user',q);
-  setTimeout(()=>{addChatMsg('bunny',bunnyAnswer(q));setBunnyAnim('happy',null);},400);
+  const item=map[btn.textContent.trim()];
+  if(!item){addChatMsg('user',btn.textContent);setTimeout(()=>addChatMsg('bunny',bunnyAnswer(btn.textContent)),400);return;}
+  addChatMsg('user',item.q);
+  setTimeout(()=>{
+    const ans=(QA[item.idx]&&QA[item.idx].a)||bunnyAnswer(item.q);
+    addChatMsg('bunny',ans);
+    setBunnyAnim('happy',null);
+  },400);
 }
 function getSuggestions(){try{return JSON.parse(localStorage.getItem(SUG_KEY)||'[]');}catch{return[];}}
 function saveSuggestions(arr){localStorage.setItem(SUG_KEY,JSON.stringify(arr));}
