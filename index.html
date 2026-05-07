@@ -1673,6 +1673,17 @@ function doGenerate(){
 
   const results=[],warns=[];
   const assignedNames=new Set();
+  const isTeamLeader=(s)=>!!s?.mgrHosps?.length;
+  const managerStartByHosp={};
+  const teamLeadSplitWarns=new Set();
+  const addManagerStart=(hospId,name)=>{
+    if(!managerStartByHosp[hospId])managerStartByHosp[hospId]=[];
+    if(!managerStartByHosp[hospId].includes(name))managerStartByHosp[hospId].push(name);
+  };
+  todayLocks.forEach(lk=>{
+    const st=availPool.find(s=>s.name===lk.name);
+    if(isTeamLeader(st))addManagerStart(lk.hospId,lk.name);
+  });
   // Track which hospitals got no interpreter (for memo)
   const noInterpHosps=new Set();
 
@@ -1815,10 +1826,27 @@ function doGenerate(){
         englishOnlyTakingBilingual?3:
         workingAlba?-6:
         (s.preferBase&&d.hospId==='브라운')?-5:st.cur===d.hospId?0:!st.cur?1:2;
+      if(isTeamLeader(s)&&!isMgr(s)&&!isLK(s)&&!isFR(s))sc+=12;
       return{s,sc,canGo,isMoved,fromH,lk:isLK(s),fx:isFR(s),mgr:isMgr(s),rn};
     }).filter(x=>x.canGo&&x.sc<900).sort((a,b)=>a.sc-b.sc);
 
-    const picked=scored.slice(0,d.needCount);
+    const picked=[],heldBackManagers=[];
+    for(const x of scored){
+      const startsHere=isTeamLeader(x.s)&&!x.isMoved;
+      const existingManagers=managerStartByHosp[d.hospId]||[];
+      const pickedManagers=picked.filter(p=>isTeamLeader(p.s)&&!p.isMoved).map(p=>p.s.name);
+      const conflicts=startsHere&&!x.lk&&[...existingManagers,...pickedManagers].some(n=>n!==x.s.name);
+      if(conflicts){heldBackManagers.push(x);continue;}
+      picked.push(x);
+      if(picked.length>=d.needCount)break;
+    }
+    if(heldBackManagers.length&&picked.length<d.needCount){
+      const key=`${d.hospId}_${demandLangKey(d)}`;
+      if(!teamLeadSplitWarns.has(key)){
+        teamLeadSplitWarns.add(key);
+        warns.push(`팀장 분리 규칙: ${hospTextName(d.hospId)}에 팀장 2명 동시 배정 방지`);
+      }
+    }
     if(!picked.length){
       results.push({demand:d,assigned:[],useEng,noStaff:true});
       return;
@@ -1829,6 +1857,7 @@ function doGenerate(){
       ss[x.s.name].allDay=ss[x.s.name].allDay||d.allDay;
       ss[x.s.name].lastT=d.times.length?demandEndMin(d.hospId,d.times,false):(d.allDay?getClosingMin(d.hospId):(ss[x.s.name].lastT||toMin('10:00')));
       ss[x.s.name].slots.push(demandSlot(d.hospId,d.times,d.allDay));
+      if(isTeamLeader(x.s)&&!x.isMoved)addManagerStart(d.hospId,x.s.name);
     });
     results.push({demand:d,assigned:picked.map(x=>({
       name:x.s.name,type:x.s.type,langs:x.s.langs,
@@ -1856,6 +1885,7 @@ function doGenerate(){
     if(hardBase&&d.hospId!==hardBase)return false;
     if(s.neverBase&&d.hospId==='브라운')return false;
     if(s.neverHosps?.includes(d.hospId))return false;
+    if(isTeamLeader(s)&&(managerStartByHosp[d.hospId]||[]).length)return false;
     if(['명동','슈퍼맨'].includes(d.hospId)&&activeAssignedCount(r)>=1)return false;
     if(d.hospId==='명동'&&!(s.fixedRules&&s.fixedRules.some(fr=>fr.hospId==='명동'&&demandLangs(d).includes(fr.lang)&&(!fr.days||fr.days.includes(selectedDay)))))return false;
     if(!staffCanCoverDemand(s,d,r.useEng||r.noStaff))return false;
@@ -1884,6 +1914,7 @@ function doGenerate(){
     ss[s.name].allDay=ss[s.name].allDay||target.demand.allDay;
     ss[s.name].lastT=target.demand.times.length?demandEndMin(target.demand.hospId,target.demand.times,false):(target.demand.allDay?getClosingMin(target.demand.hospId):(ss[s.name].lastT||toMin('10:00')));
     ss[s.name].slots.push(demandSlot(target.demand.hospId,target.demand.times,target.demand.allDay));
+    if(isTeamLeader(s))addManagerStart(target.demand.hospId,s.name);
     target.assigned.push({
       name:s.name,type:s.type,langs:s.langs,
       isMoved:false,fromH:null,lk:false,fx:false,mgr:false,rn:null,useEng:target.useEng,supplemental:true
@@ -1946,6 +1977,13 @@ function renderResult(results,standby,warns,totalAvail,todayLeaves,noInterpHosps
     });
   });
   const homeStandby={};
+  const isTeamLeaderName=(name)=>!!STAFF.find(x=>x.name===name)?.mgrHosps?.length;
+  const managerHomes={};
+  const addManagerHome=(hospId,name)=>{
+    if(!managerHomes[hospId])managerHomes[hospId]=[];
+    if(!managerHomes[hospId].includes(name))managerHomes[hospId].push(name);
+  };
+  results.forEach(r=>r.assigned.filter(a=>!a.isMoved&&isTeamLeaderName(a.name)).forEach(a=>addManagerHome(r.demand.hospId,a.name)));
   standby.forEach(s=>{
     const lk=staffPrimaryLang(s);
     const brownLang=(langCountByHosp.브라운?.[lk]||0);
@@ -1957,6 +1995,14 @@ function renderResult(results,standby,warns,totalAvail,todayLeaves,noInterpHosps
     else if(s.name==='항다르마'||s.neverBase||s.preferNear)home='니어';
     else if(s.preferBase)home='브라운';
     else if(nearLang<brownLang||nearTotal<brownTotal)home='니어';
+    if(isTeamLeaderName(s.name)){
+      const managedOpen=(s.mgrHosps||[]).filter(h=>!isHospitalClosedOnSelectedDay(h));
+      const openWithoutManager=managedOpen.find(h=>!(managerHomes[h]||[]).some(n=>n!==s.name));
+      const currentHasOtherManager=(managerHomes[home]||[]).some(n=>n!==s.name);
+      if(openWithoutManager&&(currentHasOtherManager||!managedOpen.includes(home)))home=openWithoutManager;
+      else if(currentHasOtherManager&&managedOpen.length)home=managedOpen[0];
+      addManagerHome(home,s.name);
+    }
     if(!langCountByHosp[home])langCountByHosp[home]={};
     langCountByHosp[home][lk]=(langCountByHosp[home][lk]||0)+1;
     if(!homeStandby[home])homeStandby[home]=[];
