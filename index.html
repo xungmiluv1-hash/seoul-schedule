@@ -789,9 +789,15 @@ window.onload=()=>{
   loadLocks();
   loadPermanentLocks();
   updateCloudStatus();
-  const d=new Date().getDay(),mapped=d===0?6:d-1;
+  // v20: 헤더에는 '오늘' 고정 표시
+  const todayD=new Date();
+  const todayDow=todayD.getDay(),todayMapped=todayDow===0?6:todayDow-1;
+  document.getElementById('dayDisplay').textContent=`${formatDateKey(todayD)} ${DAYS_KR[todayMapped]}요일 (오늘)`;
+  // v20: 배정 페이지는 내일을 기본 (사용자는 보통 다음날을 미리 배정함)
   const defaultDate=new Date();
-  if(mapped===3)defaultDate.setDate(defaultDate.getDate()+1);
+  defaultDate.setDate(defaultDate.getDate()+1);
+  const dow=defaultDate.getDay(),mapped=dow===0?6:dow-1;
+  if(mapped===3)defaultDate.setDate(defaultDate.getDate()+1); // Thu→Fri
   selectScheduleDate(formatDateKey(defaultDate),{silent:true});
   document.getElementById('pasteArea').addEventListener('input',debounce(doParse,300));
   document.getElementById('lockArea').addEventListener('input',debounce(parseLocks,300));
@@ -1406,8 +1412,14 @@ function selectScheduleDate(key,{silent=false}={}){
   const dateInput=document.getElementById('scheduleDate');
   if(dateInput)dateInput.value=key;
   const dayLabel=document.getElementById('scheduleDayLabel');
-  if(dayLabel)dayLabel.textContent=DAYS_KR[day]+'요일';
-  document.getElementById('dayDisplay').textContent=`${key} ${DAYS_KR[day]}요일`;
+  if(dayLabel){
+    const today=new Date();today.setHours(0,0,0,0);
+    const sel=new Date(date);sel.setHours(0,0,0,0);
+    const diff=Math.round((sel-today)/86400000);
+    const rel=diff===0?'오늘':diff===1?'내일':diff===-1?'어제':diff>0?diff+'일 후':Math.abs(diff)+'일 전';
+    dayLabel.textContent=DAYS_KR[day]+'요일 ('+rel+')';
+  }
+  // (dayDisplay는 헤더에 '오늘' 표시 — selectScheduleDate에서 갱신하지 않음)
   loadSelectedLocksIntoEditor();
   renderPermanentLockEditor();
   const sp=supportersByDay[day]||[];
