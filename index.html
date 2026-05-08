@@ -620,6 +620,11 @@ const LANG_ALIAS={
   베트남:'V',베트남어:'V',월남:'V',월남어:'V',
   태국:'T',태국어:'T',타이:'T',타이어:'T',
   인도네시아:'I',인도네시아어:'I',인니:'I',인니어:'I',
+  MA:'I',ML:'I',D:'I',Ma:'I',Ml:'I',ma:'I',ml:'I',d:'I',
+  말레이시아:'I',말레이시아어:'I',말레이:'I',말레이어:'I',
+  동티모르:'I',동티모르어:'I',
+  L:'T',Lao:'T',LAO:'T',lao:'T',
+  라오스:'T',라오스어:'T',라우스:'T',
   우즈벡:'U',우즈벡어:'U',우즈베키스탄:'U',우즈베키스탄어:'U',
   필리핀:'P',필리핀어:'P',
   R:'R',RU:'R',Ru:'R',ru:'R',KA:'R',Ka:'R',ka:'R',
@@ -1464,7 +1469,11 @@ function parseInlineHospitalDemand(tr){
 }
 function parseTimes(raw){
   if(!raw)return[];
-  const times=[];const re=/(\d+)시(\d+)?분?/g;let m;
+  const times=[];
+  if(/오전/.test(raw))times.push('10:00','12:00');
+  if(/오후/.test(raw))times.push('13:00','17:00');
+  if(/출근/.test(raw))times.push('10:00');
+  const re=/(\d+)시(\d+)?분?/g;let m;
   while((m=re.exec(raw))!==null){
     let h=parseInt(m[1]);const mn=m[2]?parseInt(m[2]):0;
     if(h>=1&&h<=7)h+=12;
@@ -1549,15 +1558,69 @@ function parseLocks(){
   const text=document.getElementById('lockArea').value;
   const dk=getDateKey();if(!dk)return;
   locksByDate[dk]=[];
+  // Helper: parse single segment to extract hospId, time, checkin (flexible — order doesn't matter)
+  const parseStop=(seg)=>{
+    let arriveBy=null;
+    const tilMatch=seg.match(/(\d+)시(?:(\d+)분?)?까지/);
+    if(tilMatch){
+      let h=parseInt(tilMatch[1]);
+      const mn=tilMatch[2]?parseInt(tilMatch[2]):0;
+      if(h>=1&&h<=7)h+=12;
+      arriveBy=`${String(h).padStart(2,'0')}:${String(mn).padStart(2,'0')}`;
+    }
+    const isCheckin=/출근/.test(seg);
+    // Strip time markers + 출근 to find hospital name
+    const cleaned=seg.replace(/(\d+)시(?:(\d+)분?)?(까지)?/g,'').replace(/출근/g,'').trim();
+    const tokens=cleaned.split(/\s+/).filter(t=>t);
+    let hospId=null;
+    for(const tok of tokens){
+      hospId=resolveHospId(tok);
+      if(hospId)break;
+    }
+    return {hospId,arriveBy,isCheckin};
+  };
+  // Helper: find longest staff name match in text
+  const findName=(text)=>{
+    let best=null,bestLen=0;
+    for(const staff of STAFF){
+      if(text.includes(staff.name)&&staff.name.length>bestLen){best=staff.name;bestLen=staff.name.length;}
+    }
+    return best;
+  };
   text.split('\n').forEach(line=>{
     const tr=line.trim();if(!tr)return;
-    const m=tr.match(/^(.+?)\s*[→\->]+\s*(.+?)(\s+\d+시.*)?$/);
-    if(!m)return;
-    const name=m[1].trim();
-    const hospId=resolveHospId(m[2].trim().split(/\s+/)[0])||resolveHospId(m[2].trim());
-    if(!hospId||!STAFF.some(s=>s.name===name))return;
-    const times=parseTimes((m[3]||'')+(m[2]||''));
-    locksByDate[dk].push({name,hospId,times});
+    // Split by → or ->
+    const segs=tr.split(/\s*[→\->]+\s*/).filter(p=>p.trim());
+    if(segs.length<2)return;
+    // First segment: extract name + optional first stop info
+    const firstSeg=segs[0].trim();
+    const name=findName(firstSeg);
+    if(!name)return;
+    // Remove name from first segment to get first-stop info
+    const firstRest=firstSeg.replace(name,'').trim();
+    const firstStop=parseStop(firstRest);
+    const isMulti=segs.length>2||(segs.length>=2&&firstStop.hospId);
+    const groupId=name+'_'+Date.now()+'_'+Math.random();
+    let stopOrder=0;
+    if(firstStop.hospId){
+      const times=[];
+      if(firstStop.isCheckin)times.push('10:00');
+      if(firstStop.arriveBy&&!times.includes(firstStop.arriveBy))times.push(firstStop.arriveBy);
+      times.sort();
+      locksByDate[dk].push({name,hospId:firstStop.hospId,times,multiGroup:isMulti?groupId:null,stopOrder:stopOrder++});
+    }
+    // Process remaining segments
+    for(let i=1;i<segs.length;i++){
+      const stop=parseStop(segs[i]);
+      if(!stop.hospId)continue;
+      const times=[];
+      if(stop.arriveBy)times.push(stop.arriveBy);
+      if(stop.isCheckin&&!times.includes('10:00'))times.push('10:00');
+      const segTimes=parseTimes(segs[i]);
+      segTimes.forEach(t=>{if(!times.includes(t))times.push(t);});
+      times.sort();
+      locksByDate[dk].push({name,hospId:stop.hospId,times,multiGroup:isMulti?groupId:null,stopOrder:stopOrder++});
+    }
   });
   if(!locksByDate[dk].length)delete locksByDate[dk];
   saveLocks('날짜별 고정 배정 수정');
@@ -1717,7 +1780,9 @@ function doGenerate(){
   const permanentToday=availPool.map(s=>({staff:s,hospId:permanentBaseForStaff(s)}))
     .filter(x=>x.hospId)
     .map(x=>({name:x.staff.name,hospId:x.hospId,times:[],permanent:true}));
-  const todayLocks=[...permanentToday,...dateLocks.filter(l=>!permanentToday.some(p=>p.name===l.name))];
+  // Multi-stop locks bypass permanent-base dedup
+  const multiStopNames=new Set(dateLocks.filter(l=>l.multiGroup).map(l=>l.name));
+  const todayLocks=[...permanentToday.filter(p=>!multiStopNames.has(p.name)),...dateLocks.filter(l=>l.multiGroup||!permanentToday.some(p=>p.name===l.name))];
   const combinedDemandMap={};
   active.forEach(p=>{
     const key=`${p.hospId}__${p.lang}`;
@@ -1794,6 +1859,9 @@ function doGenerate(){
   const priorityOrder=['브라운','명동','다정한','안과','아트라인','오아로','닥터송','슈퍼맨','헤라','니어'];
   const firstDemandTime=(d)=>d.times.length?toMin(d.times[0]):null;
   demand.sort((a,b)=>{
+    // allDay demands processed FIRST to lock interpreter (no movement out)
+    if(a.allDay&&!b.allDay)return -1;
+    if(!a.allDay&&b.allDay)return 1;
     const nearHeraSatA=selectedDay===5&&a.hospId==='니어'&&a.lang==='I'&&b.hospId==='헤라'&&b.lang==='I'&&b.times.some(t=>toMin(t)>=toMin('14:00'))?-1:0;
     const nearHeraSatB=selectedDay===5&&b.hospId==='니어'&&b.lang==='I'&&a.hospId==='헤라'&&a.lang==='I'&&a.times.some(t=>toMin(t)>=toMin('14:00'))?-1:0;
     if(nearHeraSatA!==nearHeraSatB)return nearHeraSatA-nearHeraSatB;
@@ -1818,6 +1886,7 @@ function doGenerate(){
   const results=[],warns=[];
 
   const activeHospIds=new Set(active.map(p=>p.hospId));
+  const lockStops={};
   todayLocks.forEach(lk=>{
     if(!availPool.find(s=>s.name===lk.name))return;
     if(!activeHospIds.has(lk.hospId)){
@@ -1825,9 +1894,14 @@ function doGenerate(){
       warns.push(`고정배정 무시: ${lk.name} → ${hn} (오늘 스케줄에 없는 병원)`);
       return;
     }
-    lsh[lk.name]=lk.hospId;ss[lk.name].cur=lk.hospId;
-    ss[lk.name].allDay=lk.times.length===0;
-    if(lk.times.length)ss[lk.name].lastT=demandEndMin(lk.hospId,lk.times,false);
+    if(!lockStops[lk.name])lockStops[lk.name]=[];
+    lockStops[lk.name].push({hospId:lk.hospId,times:lk.times,multiGroup:lk.multiGroup});
+    // First stop becomes primary lsh
+    if(!lsh[lk.name]){
+      lsh[lk.name]=lk.hospId;ss[lk.name].cur=lk.hospId;
+      ss[lk.name].allDay=lk.times.length===0;
+      if(lk.times.length)ss[lk.name].lastT=demandEndMin(lk.hospId,lk.times,false);
+    }
     ss[lk.name].slots.push(demandSlot(lk.hospId,lk.times,lk.times.length===0));
   });
   const assignedNames=new Set();
@@ -1900,7 +1974,7 @@ function doGenerate(){
     }
 
     const isFR=matchesFixedRule;
-    const isLK=(s)=>!!lsh[s.name]&&lsh[s.name]===d.hospId;
+    const isLK=(s)=>(!!lsh[s.name]&&lsh[s.name]===d.hospId)||(!!lockStops[s.name]&&lockStops[s.name].some(st=>st.hospId===d.hospId));
     const isMgr=(s)=>s.mgrHosps&&s.mgrHosps.includes(d.hospId)&&(d.lang==='V'||s.langs.includes(d.lang));
     const isAlwaysFixed=(s)=>s.alwaysFixed&&isFR(s);
 
@@ -1909,19 +1983,37 @@ function doGenerate(){
       if(hardBase&&d.hospId!==hardBase)return{s,sc:999,canGo:false};
       if(s.neverBase&&d.hospId==='브라운')return{s,sc:999,canGo:false};
       if(s.neverHosps?.includes(d.hospId))return{s,sc:999,canGo:false};
-      if(assignedNames.has(s.name)&&!(isLK(s)&&ss[s.name].cur===d.hospId)&&!canReuseAssigned(s))return{s,sc:998,canGo:false};
+      // STRICT allDay enforcement: if person has allDay slot at OTHER hospital, block (unless that hospital closes early enough)
+      const allDaySlot=(ss[s.name].slots||[]).find(sl=>sl.allDay&&sl.hospId!==d.hospId);
+      if(allDaySlot){
+        const allDayClose=getClosingMin(allDaySlot.hospId);
+        const tv=travelTime(allDaySlot.hospId,d.hospId);
+        const fi=d.times.length?toMin(d.times[0]):toMin('10:00');
+        // Allow only if allDay hospital closes early AND there's enough time after
+        if(allDayClose+tv>fi)return{s,sc:997,canGo:false};
+      }
+      const isMultiStopHere=(lockStops[s.name]?.length||0)>1&&lockStops[s.name].some(st=>st.hospId===d.hospId&&st.multiGroup);
+      if(assignedNames.has(s.name)&&!(isLK(s)&&(ss[s.name].cur===d.hospId||isMultiStopHere))&&!canReuseAssigned(s))return{s,sc:998,canGo:false};
 
       const st=ss[s.name];
       let canGo=true,isMoved=false,fromH=null;
       const fit=staffScheduleFit(st,d);
 
-      if(lsh[s.name]&&lsh[s.name]!==d.hospId){
-        const nearLockToHeraSat=s.name==='아정'&&selectedDay===5&&lsh[s.name]==='니어'&&d.hospId==='헤라'&&d.times.length&&toMin(d.times[0])>=toMin('14:00');
+      // Multi-stop: use previous stop in sequence as anchor instead of lsh
+      let _anchor=lsh[s.name];
+      const _stopsArr=lockStops[s.name];
+      if(_stopsArr&&_stopsArr.length>1){
+        const _idx=_stopsArr.findIndex(st=>st.hospId===d.hospId);
+        if(_idx===0)_anchor=d.hospId; // first stop, no movement
+        else if(_idx>0)_anchor=_stopsArr[_idx-1].hospId; // use prev stop
+      }
+      if(_anchor&&_anchor!==d.hospId){
+        const nearLockToHeraSat=s.name==='아정'&&selectedDay===5&&_anchor==='니어'&&d.hospId==='헤라'&&d.times.length&&toMin(d.times[0])>=toMin('14:00');
         if(!fit.can&&!nearLockToHeraSat){
           canGo=false;
         } else {
-        if(nearLockToHeraSat){isMoved=true;fromH=lsh[s.name];canGo=true;}
-        else{isMoved=fit.isMoved;fromH=fit.fromH;}
+        if(nearLockToHeraSat){isMoved=true;fromH=_anchor;canGo=true;}
+        else{isMoved=fit.isMoved;fromH=fit.fromH||_anchor;}
         }
       } else if(st.cur&&st.cur!==d.hospId){
         const flexibleFromBrown=st.cur==='브라운'&&d.times.length>0;
@@ -2082,6 +2174,21 @@ function doGenerate(){
   });
   if(supplemental.length)warns.push(`추가 출근자 분산 배정: ${supplemental.join(', ')}`);
 
+  // Defensive: double-check noStaff results against actual assignments at same hospital+language
+  results.forEach(r=>{
+    if(!r.noStaff)return;
+    const dLangs=r.demand.mergedRU||r.demand.mergedEN?r.demand.mergeLangs:[r.demand.lang];
+    let actualAssigned=0;
+    results.forEach(rr=>{
+      if(rr.demand.hospId!==r.demand.hospId)return;
+      const rrLangs=rr.demand.mergedRU||rr.demand.mergedEN?rr.demand.mergeLangs:[rr.demand.lang];
+      if(!dLangs.some(l=>rrLangs.includes(l)))return;
+      actualAssigned+=(rr.assigned||[]).length;
+    });
+    if(actualAssigned>=(r.demand.needCount||1)){
+      r.noStaff=false; // already covered, clear flag
+    }
+  });
   results.filter(r=>r.noStaff&&!supportCoversDemand(r.demand)).forEach(r=>{
     const hosp=HOSPITALS.find(h=>h.id===r.demand.hospId);
     if(NEEDS_INTERP.includes(r.demand.hospId))noInterpHosps.add(`${r.demand.hospId}:${r.demand.lang}`);
@@ -2287,9 +2394,26 @@ function renderResult(results,standby,warns,totalAvail,todayLeaves,noInterpHosps
       const at=[...new Set(s.slots.flatMap(sl=>sl.times))];
       const mv=s.slots.filter(sl=>sl.isMoved&&sl.fromH);
 
+      // Multi-stop: only show at the FIRST stop with full chain; skip subsequent stops
+      const _dk=getDateKey();
+      const _dayLocks=_dk?(locksByDate[_dk]||[]):[];
+      const _personLocks=_dayLocks.filter(l=>l.name===s.name&&l.multiGroup).sort((a,b)=>(a.stopOrder||0)-(b.stopOrder||0));
+      const _isMultiStop=_personLocks.length>1;
+      const _isFirstStop=_isMultiStop&&_personLocks[0].hospId===hosp.id;
+      // Skip rendering at subsequent stops (already shown at first stop)
+      if(_isMultiStop&&!_isFirstStop)return;
+
       let parts=[];
       if(at.length)parts.push(at.join('/'));
-      if(mv.length)parts.push(`<span class="smove">${[...new Set(mv.map(sl=>sl.fromH))].join('/')}에서 이동</span>`);
+      if(_isFirstStop){
+        const chain=_personLocks.slice(1).map(l=>{
+          const hn=HOSPITALS.find(h=>h.id===l.hospId)?.name||l.hospId;
+          return l.times.length?`${hn} ${l.times[0].replace(/^0/,'').replace(':00','시')}까지`:hn;
+        }).join(' → ');
+        parts.push(`<span class="smove">→ ${chain} 이동</span>`);
+      } else if(mv.length){
+        parts.push(`<span class="smove">${[...new Set(mv.map(sl=>sl.fromH))].join('/')}에서 이동</span>`);
+      }
       if(rn)parts.push(`<span class="sreturn">${rn}</span>`);
       if(aLk)parts.push(`<span class="slock-badge">🔒고정</span>`);
       if(aMgr)parts.push(`<span class="smgr-badge">👑팀장</span>`);
@@ -2299,8 +2423,18 @@ function renderResult(results,standby,warns,totalAvail,todayLeaves,noInterpHosps
       const nc=aLk?'locked-name':aMgr?'mgr-name':cc;
       html+=`<div class="sline ${rc}"><span class="sname ${nc}">${s.name}</span>${parts.length?`<span class="sdetail">(${parts.join(' · ')})</span>`:''}</div>`;
 
-      const movedOnly=s.slots.length>0&&s.slots.every(sl=>sl.isMoved);
-      if(!movedOnly)pushStaffText(s.name,staffTextLine(s));
+      // Text output: include chain for first stop
+      if(_isFirstStop){
+        const chainText=_personLocks.slice(1).map(l=>{
+          const hn=HOSPITALS.find(h=>h.id===l.hospId)?.name||l.hospId;
+          return l.times.length?`${hn} ${l.times[0].replace(/^0/,'').replace(':00','시')}까지`:hn;
+        }).join(' → ');
+        const timePart=at.length?`${at.join('/')} · `:'';
+        pushStaffText(s.name,`${s.name} (${timePart}→ ${chainText} 이동)`);
+      } else {
+        const movedOnly=s.slots.length>0&&s.slots.every(sl=>sl.isMoved);
+        if(!movedOnly)pushStaffText(s.name,staffTextLine(s));
+      }
     });
 
     // No-staff with phone memo
