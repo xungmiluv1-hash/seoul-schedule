@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>서울인력 스케줄 v10</title>
+<title>서울인력 스케줄 v20</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -2640,12 +2640,11 @@ function saveNewStaff(){
 // ══════════ BUNNY (귀요미) ══════════
 const BUNNY_KEY='gyuomi_v1';
 const SUG_KEY='gyuomi_suggestions_v1';
-const FEED_CD=20*60*1000;
-const BATH_CD=60*60*1000;
 const SLEEP_CD=30*60*1000;
 
 function getBunnyState(){
-  const def={hunger:80,clean:80,energy:80,lastFeed:0,lastBath:0,lastSleep:0,lastUpdate:Date.now()};
+  const def={hunger:80,clean:80,energy:80,lastFeed:0,lastBath:0,lastSleep:0,lastUpdate:Date.now(),
+    intimacy:0,lastVisit:Date.now(),feedTimes:[],bathTimes:[]};
   try{const s=JSON.parse(localStorage.getItem(BUNNY_KEY)||'{}');return Object.assign(def,s);}catch{return def;}
 }
 function saveBunnyState(s){s.lastUpdate=Date.now();localStorage.setItem(BUNNY_KEY,JSON.stringify(s));}
@@ -2654,8 +2653,41 @@ function decayBunnyStats(s){
   s.hunger=Math.max(0,s.hunger-hrs*12);
   s.clean=Math.max(0,s.clean-hrs*6);
   s.energy=Math.max(0,s.energy-hrs*8);
+  s.intimacy=Math.max(0,(s.intimacy||0)-hrs*0.4);
   return s;
 }
+// === v20 personality lines (Korean meme tone) ===
+const LINES={
+  hungry:['내 머릿속이 당근 그 자체가 됐어요... 🥕','저기요... 이 작은 생명체... 잊으신 건 아니죠?','배가 너무 고파서 귀가 떨려요 🥺','당근... 당근... 당근... (눈빛이 점점 강렬해짐)','이대로 가다간... 저는... 안 돼... (드라마 시작)','꼬르륵 소리가 옆 동네까지 들려요 😭'],
+  veryHungry:['저... 진짜로... 곧... 사라질 것 같아요... 🥲','주인님 사진을 핥아봤어요. 맛이 안 나요.','꿈에서 당근이 저를 무시했어요.'],
+  full:['냠냠~ 🥕❤️ 인생 최고의 한 입이에요','데구르르~ 너무 행복해서 굴러갑니다','히히 당근으로 충전 100%','사랑받는 토끼는 이런 표정이에요 ✨','으흐흐 ☺️ 또 주세요... 어 농담이에요'],
+  feedSpam:['으윽... 배가 빵빵... 풍선 될 것 같아요 🎈','저 곧 둥글둥글... 동그란 토끼가 됩니다 ⚪','당근만 먹다가 색깔이 주황색이 됐어요 🥕','배꼽이 어디 갔는지 안 보여요...','이러다 토끼가 아니라 호빵맨 돼요','저... 토끼 맞나요? 호박 아닌가요? 🎃','잠깐... 잠깐만요... 한 번에 하나씩...','으악 더 못 먹어요! 🤢 토끼 풍선 곧 터져요'],
+  sleepy:['방금 눈 뜨고 잤어요...','음냐... 음냐... 어... 누구세요?','꿈에서 당근 농장 갔다 왔어요 💤','졸려요... 잠깐만요... (코- 골며)'],
+  slept:['쿨쿨... 💤 잘 잤어요! 에너지 충전 완료','꿈에서 당근 100개 먹었어요','으아 잘 잤다~ 다시 활동 가능 ✨'],
+  bath:['꺄아아 시원해 🛁✨','거품 뽀글뽀글~ 🫧','뽀송뽀송 토끼가 됐어요!'],
+  bathSpam:['...토끼 키우시는 거 맞죠? 세차 아니죠? 🚗😭','비누 먹은 줄 알았어요... 입에서 거품이 🫧','으아 가죽이 벗겨질 거예요...','샴푸 광고 모델 데뷔 가능... 근데 그게 좋은 거예요?','거품 속에서 영혼이 빠져나갔어요 👻','비누 공격이에요! 살려주세요!! 😭','저 토끼 아니라 인형이 됐어요 🧸 (뽀송뽀송 너무 함)','뽀드득뽀드득... 진짜 그만요...'],
+  clickAnnoyed:['어어 어지러워요 🌀','그만! 그만요! 진짜 쓰러져요!','아 진짜...! 😤','(눈 빙글빙글) 멈... 멈춰주세요...'],
+  clickFaint:['(시야가 흐려지며) 저... 천국 보여요... 🌈','...꽈당. (귀요미가 쓰러졌습니다)','저는 잠시 영혼 여행 다녀오겠습니다... 👻'],
+  return1h:['어디 가셨었어요...?','심심했어요 🥺'],
+  return5h:['귀가 축... 처졌어요 🥺','혼자 당근 세고 있었어요... 1, 2, 3...'],
+  return12h:['혼자 살아남는 법을 배웠어요.','거울 속의 저랑 친해졌어요.'],
+  return24h:['당신이 돌아왔다!! 😭 보고 싶었어요!\n그동안 저는:\n• 당근 2개 먹기\n• 인생 고민\n• 당신 살짝 그리워하기 ❤️','모기랑 결투해서 졌어요.','저 자급자족 토끼 됐어요. 이제 풀 뜯어 먹을 줄 알아요.','잠깐... 누구세요...? 농담! 😭 보고 싶었어요'],
+  threeAm:['이 시간에... 안 주무세요? 🌙 같이 놀아요','새벽이네요... 저랑 비밀 공유하실래요? 🌙','쉿. 다른 토끼들은 자고 있어요 🤫'],
+  petLow:['안녕하세요! 🌸','쓰다듬어 주셔서 감사해요!','히힛 부끄러워요 ☺️','오늘도 잘 부탁드려요!'],
+  petMid:['좋아요 좋아요! 또 해주세요 ✨','오늘도 함께해요~ 💕','쓰담쓰담 좋아요 🥰','귀요미는 당신이 최고예요!'],
+  petHigh:['왜 이제 와요 ㅋㅋ 보고 싶었잖아요','또 쓰담? 중독되신 거 아니에요? ㅎㅎ','우리 둘이 진짜 친하네요 ❤️','당신 없으면 저는 그냥 평범한 토끼예요']
+};
+let _lastLine='';
+function pickLine(pool){
+  if(!pool||!pool.length)return '';
+  let m=pool[Math.floor(Math.random()*pool.length)];
+  if(m===_lastLine&&pool.length>1)m=pool[(pool.indexOf(m)+1)%pool.length];
+  _lastLine=m;return m;
+}
+function intimacyLevel(s){if((s.intimacy||0)<20)return 'low';if((s.intimacy||0)<60)return 'mid';return 'high';}
+function pruneTimes(arr){const cutoff=Date.now()-24*3600000;return(arr||[]).filter(t=>t>cutoff);}
+let _clickTimes=[];
+function trackBunnyClick(){const now=Date.now();_clickTimes=_clickTimes.filter(t=>now-t<3000);_clickTimes.push(now);return _clickTimes.length;}
 function renderBunnyStats(){
   const s=decayBunnyStats(getBunnyState());
   const h=Math.round(s.hunger),c=Math.round(s.clean),e=Math.round(s.energy);
@@ -2664,14 +2696,12 @@ function renderBunnyStats(){
   hEl.style.width=h+'%';document.getElementById('bValH').textContent=h+'%';
   cEl.style.width=c+'%';document.getElementById('bValC').textContent=c+'%';
   eEl.style.width=e+'%';document.getElementById('bValE').textContent=e+'%';
-  // Feed button cooldown
+  // 🥕 / 🛁 무제한 (no cooldown)
   const feedBtn=document.getElementById('bFeedBtn');
-  const now=Date.now();const rem=FEED_CD-(now-s.lastFeed);
-  if(rem>0){feedBtn.disabled=true;const m=Math.ceil(rem/60000);feedBtn.querySelector('.bsub').textContent=m+'분 후';}
-  else{feedBtn.disabled=false;feedBtn.querySelector('.bsub').textContent='1시간에 3번';}
-  const bathBtn=document.getElementById('bBathBtn');const brem=BATH_CD-(now-s.lastBath);
-  if(brem>0){bathBtn.disabled=true;bathBtn.querySelector('.bsub').textContent=Math.ceil(brem/60000)+'분 후';}
-  else{bathBtn.disabled=false;bathBtn.querySelector('.bsub').textContent='청결 +40';}
+  feedBtn.disabled=false;feedBtn.querySelector('.bsub').textContent='무제한 🥕';
+  const bathBtn=document.getElementById('bBathBtn');
+  bathBtn.disabled=false;bathBtn.querySelector('.bsub').textContent='무제한 🛁';
+  const now=Date.now();
   const sleepBtn=document.getElementById('bSleepBtn');const srem=SLEEP_CD-(now-s.lastSleep);
   if(srem>0){sleepBtn.disabled=true;sleepBtn.querySelector('.bsub').textContent=Math.ceil(srem/60000)+'분 후';}
   else{sleepBtn.disabled=false;sleepBtn.querySelector('.bsub').textContent='에너지 +50';}
@@ -2693,64 +2723,57 @@ function setBunnyAnim(cls,fx){
 }
 function feedBunny(){
   const s=decayBunnyStats(getBunnyState());
-  const rem=FEED_CD-(Date.now()-s.lastFeed);
-  if(rem>0){bunnySpeak('아직 배가 불러요~ 🥕 '+Math.ceil(rem/60000)+'분 후에 또 주세요!');return;}
-  s.hunger=Math.min(100,s.hunger+30);s.lastFeed=Date.now();saveBunnyState(s);
+  s.hunger=Math.min(100,s.hunger+30);s.lastFeed=Date.now();
+  s.feedTimes=pruneTimes(s.feedTimes);s.feedTimes.push(Date.now());
+  s.intimacy=Math.min(100,(s.intimacy||0)+3);
+  saveBunnyState(s);
   setBunnyAnim('eating','❤️');renderBunnyStats();
-  bunnySpeak('냠냠냠~ 🥕 당근 맛있어요! 감사합니다!');
+  // 30분 안에 3번 이상 → 풍선 토끼 모드
+  const recent30=s.feedTimes.filter(t=>Date.now()-t<30*60000).length;
+  bunnySpeak(recent30>=3?pickLine(LINES.feedSpam):pickLine(LINES.full));
 }
 function batheBunny(){
   const s=decayBunnyStats(getBunnyState());
-  const rem=BATH_CD-(Date.now()-s.lastBath);
-  if(rem>0){bunnySpeak('이미 깨끗해요! 😊 '+Math.ceil(rem/60000)+'분 후에 다시 해주세요~');return;}
-  s.clean=Math.min(100,s.clean+40);s.lastBath=Date.now();saveBunnyState(s);
+  s.clean=Math.min(100,s.clean+40);s.lastBath=Date.now();
+  s.bathTimes=pruneTimes(s.bathTimes);s.bathTimes.push(Date.now());
+  s.intimacy=Math.min(100,(s.intimacy||0)+3);
+  saveBunnyState(s);
   setBunnyAnim('bathing','water');renderBunnyStats();
-  bunnySpeak('기분 상쾌해요! 🛁✨ 깨끗이 씻겨줘서 고마워요~');
+  // 30분 안에 3번 이상 → 세차장 모드
+  const recent30=s.bathTimes.filter(t=>Date.now()-t<30*60000).length;
+  bunnySpeak(recent30>=3?pickLine(LINES.bathSpam):pickLine(LINES.bath));
 }
 function sleepBunny(){
   const s=decayBunnyStats(getBunnyState());
   const rem=SLEEP_CD-(Date.now()-s.lastSleep);
-  if(rem>0){bunnySpeak('아직 안 피곤해요! 💪 '+Math.ceil(rem/60000)+'분 후에 재워주세요~');return;}
-  s.energy=Math.min(100,s.energy+50);s.lastSleep=Date.now();saveBunnyState(s);
+  if(rem>0){bunnySpeak('아직 안 피곤해요! 💪 ('+Math.ceil(rem/60000)+'분 후에 재워주세요~)');return;}
+  s.energy=Math.min(100,s.energy+50);s.lastSleep=Date.now();
+  s.intimacy=Math.min(100,(s.intimacy||0)+2);
+  saveBunnyState(s);
   setBunnyAnim('sleeping','zzz');renderBunnyStats();
-  bunnySpeak('쿨쿨... 💤 잘 잤어요! 에너지가 충전됐어요~');
+  bunnySpeak(pickLine(LINES.slept));
 }
-const PET_MSGS=[
-  '고생 많으셨어요! 🌸',
-  '오늘도 화이팅! 💪',
-  '최고예요! ⭐',
-  '항상 응원해요! 💕',
-  '잘하고 계세요! 🎉',
-  '수고하세요~! 🍀',
-  '당신은 멋져요! ✨',
-  '사랑해요! 💖',
-  '대단해요! 👏',
-  '항상 감사해요! 🌷',
-  '응원할게요! 🐰💕',
-  '당신이 자랑스러워요! 🏆',
-  '오늘도 빛나는 하루! ☀️',
-  '쉬엄쉬엄 해요! 🌿',
-  '귀요미가 함께해요! 🐰',
-  '괜찮아요, 다 잘 될 거예요 😊',
-  '당신은 정말 소중해요! 💝',
-  '한 번 더 힘내요! 🌈',
-  '잘 될 거예요! 🌟',
-  '응원의 당근 받으세요! 🥕💕',
-];
-let lastPetMsg='';
 function petBunny(){
-  let msg=PET_MSGS[Math.floor(Math.random()*PET_MSGS.length)];
-  if(msg===lastPetMsg)msg=PET_MSGS[(PET_MSGS.indexOf(msg)+1)%PET_MSGS.length];
-  lastPetMsg=msg;
-  bunnySpeak(msg);
+  const s=decayBunnyStats(getBunnyState());
+  const cnt=trackBunnyClick();
+  // Easter egg — extreme spam click
+  if(cnt>=10){setBunnyAnim('happy','💫');bunnySpeak(pickLine(LINES.clickFaint));return;}
+  if(cnt>=5){setBunnyAnim('happy','🌀');bunnySpeak(pickLine(LINES.clickAnnoyed));return;}
+  // State-driven override
+  if(s.hunger<10){bunnySpeak(pickLine(LINES.veryHungry));setBunnyAnim('idle',null);return;}
+  if(s.hunger<30){bunnySpeak(pickLine(LINES.hungry));setBunnyAnim('idle',null);return;}
+  if(s.energy<25){bunnySpeak(pickLine(LINES.sleepy));setBunnyAnim('sleeping',null);setTimeout(()=>setBunnyAnim('idle',null),1200);return;}
+  // Normal pet — by intimacy
+  s.intimacy=Math.min(100,(s.intimacy||0)+1);saveBunnyState(s);
+  const lvl=intimacyLevel(s);
+  const pool=lvl==='low'?LINES.petLow:lvl==='mid'?LINES.petMid:LINES.petHigh;
+  bunnySpeak(pickLine(pool));
   setBunnyAnim('happy','💕');
-  // Multiple hearts
   const fig=document.getElementById('bunnyFig');
   if(fig&&fig.parentElement){
     for(let i=0;i<3;i++){
       setTimeout(()=>{
-        const el=document.createElement('span');
-        el.className='float-fx';
+        const el=document.createElement('span');el.className='float-fx';
         el.textContent=['❤️','💕','💖','💗','✨'][Math.floor(Math.random()*5)];
         el.style.left=(45+Math.random()*30)+'%';
         fig.parentElement.appendChild(el);
@@ -2858,9 +2881,22 @@ function submitSuggestion(){
   setBunnyAnim('happy','❤️');
 }
 function initBunnyPage(){
+  const s=decayBunnyStats(getBunnyState());
+  const since=Date.now()-(s.lastVisit||Date.now());
+  const hrs=since/3600000;
+  const hour=new Date().getHours();
+  let greeting;
+  if(hour>=0&&hour<=4){greeting=pickLine(LINES.threeAm);}
+  else if(hrs>=24){greeting=pickLine(LINES.return24h);}
+  else if(hrs>=12){greeting=pickLine(LINES.return12h);}
+  else if(hrs>=5){greeting=pickLine(LINES.return5h);}
+  else if(hrs>=1){greeting=pickLine(LINES.return1h);}
+  else{greeting='안녕하세요! 저는 귀요미예요 🐰\n웹 사용이 어려우신가요? 뭐든지 물어보세요~';}
+  s.lastVisit=Date.now();saveBunnyState(s);
+  bunnySpeak(greeting);
   renderBunnyStats();renderSuggestions();
   setBunnyAnim('idle',null);
-  addChatMsg('bunny','안녕하세요! 저는 귀요미예요 🐰\n웹 사용이 어려우신가요? 뭐든지 물어보세요~ 제가 알려드릴게요!');
+  addChatMsg('bunny',greeting);
   setInterval(renderBunnyStats,30000);
 }
 function copyText(){
