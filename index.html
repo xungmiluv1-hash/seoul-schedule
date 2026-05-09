@@ -348,11 +348,24 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink)
 .meeting-table thead th .col-resize-handle.active::after{background:#1d4ed8;width:4px;height:80%;top:10%;}
 .meeting-table thead th:last-child .col-resize-handle{display:none;}
 @media(max-width:640px){
-  /* Mobile: bigger touch target + always-visible indicator */
-  .meeting-table thead th .col-resize-handle{width:28px;right:-14px;}
-  .meeting-table thead th .col-resize-handle::after{background:#3b82f6;width:3px;height:50%;top:25%;}
-  .meeting-table thead th .col-resize-handle.active::after{background:#1d4ed8;width:5px;height:80%;top:10%;}
+  /* Mobile: hide drag handle — tap header to open width popup instead */
+  .meeting-table thead th .col-resize-handle{display:none;}
 }
+/* Mobile column width popup */
+.col-width-popup{position:fixed;background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;padding:16px 18px;box-shadow:0 8px 30px rgba(0,0,0,.2);z-index:1500;width:260px;display:none;}
+.col-width-popup.show{display:block;}
+.col-width-popup h4{font-size:13px;font-weight:800;color:#0f172a;margin-bottom:12px;}
+.col-width-popup .cwp-slider{width:100%;accent-color:#3b82f6;cursor:pointer;height:28px;}
+.col-width-popup .cwp-val{font-size:13px;font-weight:800;color:#1e40af;text-align:center;font-family:'DM Mono',monospace;letter-spacing:.5px;margin:6px 0;}
+.col-width-popup .cwp-presets{display:flex;gap:6px;margin:8px 0;}
+.col-width-popup .cwp-preset{flex:1;padding:6px;border:1px solid #e2e8f0;border-radius:7px;font-size:11px;font-weight:700;background:#fafbfc;cursor:pointer;font-family:'Noto Sans KR',sans-serif;color:#475569;}
+.col-width-popup .cwp-preset:hover{background:#eff6ff;border-color:#93c5fd;color:#1e40af;}
+.col-width-popup .cwp-btns{display:flex;gap:8px;margin-top:12px;}
+.col-width-popup .cwp-btn{flex:1;padding:10px;border-radius:9px;border:none;font-family:'Noto Sans KR',sans-serif;font-size:12.5px;font-weight:700;cursor:pointer;}
+.col-width-popup .cwp-apply{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;}
+.col-width-popup .cwp-cancel{background:#f1f5f9;color:#475569;}
+.col-width-backdrop{position:fixed;inset:0;z-index:1400;display:none;background:rgba(0,0,0,.2);}
+.col-width-backdrop.show{display:block;}
 .meeting-table thead th .col-del-btn{position:absolute;top:6px;right:10px;width:18px;height:18px;border:none;background:rgba(220,38,38,.08);color:#dc2626;border-radius:50%;font-size:11px;cursor:pointer;line-height:1;display:none;z-index:7;}
 .meeting-table thead th:hover .col-del-btn{display:inline-block;}
 .meeting-table thead th .col-del-btn:hover{background:rgba(220,38,38,.18);}
@@ -793,6 +806,24 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink)
 
 <!-- v29: Toast container -->
 <div class="toast-wrap" id="toastWrap"></div>
+
+<!-- v42: Mobile column width popup -->
+<div class="col-width-backdrop" id="colWidthBackdrop" onclick="closeColWidthPopup()"></div>
+<div class="col-width-popup" id="colWidthPopup">
+  <h4 id="cwpTitle">열 너비 조정</h4>
+  <input type="range" class="cwp-slider" id="cwpSlider" min="60" max="500" value="150" oninput="document.getElementById('cwpVal').textContent=this.value+'px'">
+  <div class="cwp-val" id="cwpVal">150px</div>
+  <div class="cwp-presets">
+    <button class="cwp-preset" onclick="cwpSetWidth(80)">좁게</button>
+    <button class="cwp-preset" onclick="cwpSetWidth(150)">보통</button>
+    <button class="cwp-preset" onclick="cwpSetWidth(250)">넓게</button>
+    <button class="cwp-preset" onclick="cwpSetWidth(380)">매우 넓게</button>
+  </div>
+  <div class="cwp-btns">
+    <button class="cwp-btn cwp-cancel" onclick="closeColWidthPopup()">취소</button>
+    <button class="cwp-btn cwp-apply" onclick="applyColWidthPopup()">적용</button>
+  </div>
+</div>
 
 <!-- v31: Cell formatting toolbar -->
 <div class="cell-toolbar" id="cellToolbar">
@@ -3854,7 +3885,9 @@ function renderMeetingBlock(m,mIdx,monthKey,isHistory){
     const addLeft=isHistory?'':`<button class="col-add-left" onclick="addMeetingColAt('${monthKey}',${mIdx},${cIdx})" title="왼쪽에 열 추가">+</button>`;
     const addRight=isHistory?'':`<button class="col-add-right" onclick="addMeetingColAt('${monthKey}',${mIdx},${cIdx+1})" title="오른쪽에 열 추가">+</button>`;
     const resizeHandle=isHistory?'':`<div class="col-resize-handle" onmousedown="startColResize(event,'${monthKey}',${mIdx},${cIdx})" ontouchstart="startColResize(event,'${monthKey}',${mIdx},${cIdx})" title="드래그로 열 너비 조정"></div>`;
-    return `<th${keyAttr}>${addLeft}<input class="col-name-edit" value="${escMeetingHtml(col)}" ${isHistory?'readonly':''} onchange="updateMeetingColName('${monthKey}',${mIdx},${cIdx},this.value)">${delBtn}${addRight}${resizeHandle}</th>`;
+    // Mobile: tap on th triggers width popup (via ontouchend to avoid scroll interference)
+    const mobileTap=isHistory?'':`ontouchend="openColWidthPopup(event,'${monthKey}',${mIdx},${cIdx})"`;
+    return `<th${keyAttr} ${mobileTap}>${addLeft}<input class="col-name-edit" value="${escMeetingHtml(col)}" ${isHistory?'readonly':''} onchange="updateMeetingColName('${monthKey}',${mIdx},${cIdx},this.value)">${delBtn}${addRight}${resizeHandle}</th>`;
   }).join('');
   const trs=rows.map((row,rIdx)=>{
     const cells=cols.map((_,cIdx)=>{
@@ -4050,6 +4083,55 @@ function saveMeetingColWidth(monthKey,mIdx,cIdx,width){
   if(!all[monthKey][mIdx].colWidths)all[monthKey][mIdx].colWidths=[];
   all[monthKey][mIdx].colWidths[cIdx]=width;
   saveMeetings(all);
+}
+
+// v42: Mobile column width popup (tap header → popup with slider)
+let _cwpRef=null;
+function openColWidthPopup(e,monthKey,mIdx,cIdx){
+  // Only on mobile or if drag handle hidden
+  if(window.innerWidth>640)return; // desktop uses drag handle
+  e.preventDefault();e.stopPropagation();
+  const all=loadMeetings();
+  const colName=(all[monthKey]?.[mIdx]?.columns||[])[cIdx]||'열';
+  const curW=(all[monthKey]?.[mIdx]?.colWidths||[])[cIdx]||150;
+  _cwpRef={monthKey,mIdx,cIdx};
+  document.getElementById('cwpTitle').textContent=`"${colName}" 너비 조정`;
+  const sl=document.getElementById('cwpSlider');sl.value=curW;
+  document.getElementById('cwpVal').textContent=curW+'px';
+  // Position popup near the tapped header
+  const popup=document.getElementById('colWidthPopup');
+  const rect=e.currentTarget.getBoundingClientRect();
+  const top=Math.min(rect.bottom+6, window.innerHeight-280);
+  const left=Math.max(8,Math.min(rect.left,window.innerWidth-276));
+  popup.style.top=top+'px';popup.style.left=left+'px';
+  popup.classList.add('show');
+  document.getElementById('colWidthBackdrop').classList.add('show');
+}
+function cwpSetWidth(w){
+  const sl=document.getElementById('cwpSlider');sl.value=w;
+  document.getElementById('cwpVal').textContent=w+'px';
+  // Live preview
+  if(_cwpRef){applyColWidthLive(w);}
+}
+function applyColWidthLive(w){
+  if(!_cwpRef)return;
+  // Find the table in current meeting block and update colgroup
+  const blocks=document.querySelectorAll('#meetingArea .meeting-block');
+  const block=blocks[_cwpRef.mIdx];if(!block)return;
+  const col=block.querySelectorAll('colgroup col')[_cwpRef.cIdx];
+  if(col)col.style.width=w+'px';
+}
+function applyColWidthPopup(){
+  if(!_cwpRef)return;
+  const w=parseInt(document.getElementById('cwpSlider').value);
+  saveMeetingColWidth(_cwpRef.monthKey,_cwpRef.mIdx,_cwpRef.cIdx,w);
+  closeColWidthPopup();
+  if(typeof showToast==='function')showToast(`열 너비 ${w}px 적용됨`,'success',1400);
+}
+function closeColWidthPopup(){
+  document.getElementById('colWidthPopup').classList.remove('show');
+  document.getElementById('colWidthBackdrop').classList.remove('show');
+  _cwpRef=null;
 }
 // v36: Save/restore selection range — needed for SELECT/INPUT elements that steal selection
 let _savedCellRange=null;
