@@ -341,11 +341,18 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink)
 .meeting-table thead th[data-col-key="memo"]{background:#dcfce7;color:#14532d;}
 .meeting-table thead th .col-name-edit{background:transparent;border:none;font-weight:800;font-family:'Noto Sans KR',sans-serif;font-size:11.5px;width:calc(100% - 22px);outline:none;cursor:text;color:inherit;padding-left:14px;letter-spacing:.4px;}
 .meeting-table thead th .col-name-edit:focus{background:#fff;border:1px solid currentColor;border-radius:4px;padding:2px 4px 2px 14px;}
-/* v39: Column resize handle */
-.meeting-table thead th .col-resize-handle{position:absolute;top:0;right:-3px;width:7px;height:100%;cursor:col-resize;z-index:6;user-select:none;touch-action:none;}
-.meeting-table thead th .col-resize-handle:hover,.meeting-table thead th .col-resize-handle.active{background:linear-gradient(90deg,transparent 0,#3b82f6 50%,transparent 100%);}
+/* v39+v40: Column resize handle (touch-friendly with visible indicator) */
+.meeting-table thead th .col-resize-handle{position:absolute;top:0;right:-4px;width:8px;height:100%;cursor:col-resize;z-index:6;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none;}
+.meeting-table thead th .col-resize-handle::after{content:'';position:absolute;top:30%;left:50%;width:2px;height:40%;background:rgba(59,130,246,.4);border-radius:1px;transform:translateX(-50%);transition:all .12s;pointer-events:none;}
+.meeting-table thead th:hover .col-resize-handle::after,.meeting-table thead th .col-resize-handle:hover::after{background:#1e40af;width:3px;height:60%;top:20%;}
+.meeting-table thead th .col-resize-handle.active::after{background:#1d4ed8;width:4px;height:80%;top:10%;}
 .meeting-table thead th:last-child .col-resize-handle{display:none;}
-@media(max-width:640px){.meeting-table thead th .col-resize-handle{width:14px;right:-7px;}}
+@media(max-width:640px){
+  /* Mobile: bigger touch target + always-visible indicator */
+  .meeting-table thead th .col-resize-handle{width:28px;right:-14px;}
+  .meeting-table thead th .col-resize-handle::after{background:#3b82f6;width:3px;height:50%;top:25%;}
+  .meeting-table thead th .col-resize-handle.active::after{background:#1d4ed8;width:5px;height:80%;top:10%;}
+}
 .meeting-table thead th .col-del-btn{position:absolute;top:6px;right:10px;width:18px;height:18px;border:none;background:rgba(220,38,38,.08);color:#dc2626;border-radius:50%;font-size:11px;cursor:pointer;line-height:1;display:none;z-index:7;}
 .meeting-table thead th:hover .col-del-btn{display:inline-block;}
 .meeting-table thead th .col-del-btn:hover{background:rgba(220,38,38,.18);}
@@ -3868,6 +3875,7 @@ function renderMeetingBlock(m,mIdx,monthKey,isHistory){
     `<button class="mb-btn add-row" onclick="addMeetingRow('${monthKey}',${mIdx})">+ 행</button>
      <button class="mb-btn add-col" onclick="addMeetingCol('${monthKey}',${mIdx})">+ 열</button>
      <button class="mb-btn" style="background:#f0f9ff;border-color:#7dd3fc;color:#0369a1" onclick="fillMissingDefaultHosps('${monthKey}',${mIdx})" title="기본 병원 목록 추가">↻ 기본 병원</button>
+     <button class="mb-btn" style="background:#fef3c7;border-color:#fbbf24;color:#92400e" onclick="exportMeetingToDrive('${monthKey}',${mIdx})" title="Google Drive로 내보내기">📁 Drive 저장</button>
      ${delMeetingBtn}`;
   // Strip "차" suffix to get number for badge
   const numBadge=String(m.id||'').replace(/[^0-9]/g,'')||(mIdx+1);
@@ -3997,14 +4005,17 @@ function startColResize(e,monthKey,mIdx,cIdx){
   e.preventDefault();e.stopPropagation();
   const handle=e.currentTarget;
   const th=handle.closest('th');
-  const startX=e.touches?e.touches[0].clientX:e.clientX;
+  const isTouch=!!(e.touches&&e.touches.length);
+  const startX=isTouch?e.touches[0].clientX:e.clientX;
   const startW=th.offsetWidth;
   handle.classList.add('active');
   _resizingCol={monthKey,mIdx,cIdx,th,startX,startW,handle};
-  const moveEvt=e.touches?'touchmove':'mousemove';
-  const upEvt=e.touches?'touchend':'mouseup';
-  document.addEventListener(moveEvt,onColResizeMove,{passive:false});
-  document.addEventListener(upEvt,onColResizeEnd);
+  // Listen on both mouse and touch (in case mode switches mid-drag) — passive:false for preventDefault
+  document.addEventListener('mousemove',onColResizeMove,{passive:false});
+  document.addEventListener('mouseup',onColResizeEnd);
+  document.addEventListener('touchmove',onColResizeMove,{passive:false});
+  document.addEventListener('touchend',onColResizeEnd);
+  document.addEventListener('touchcancel',onColResizeEnd);
 }
 function onColResizeMove(e){
   if(!_resizingCol)return;
@@ -4165,6 +4176,82 @@ function applyCellStyle(act,val){
 }
 function autoResizeAllMeetingCells(){requestAnimationFrame(()=>{document.querySelectorAll('#meetingArea .cell-textarea').forEach(autoResizeMeetingCell);});}
 function printMeetings(){window.print();}
+
+// v41: Export meeting → Web Share (mobile picks Drive app) or download + open Drive in browser
+async function exportMeetingToDrive(monthKey,mIdx){
+  const all=loadMeetings();
+  const m=all[monthKey]?.[mIdx];if(!m){if(typeof showToast==='function')showToast('회의록을 찾을 수 없습니다','error');return;}
+  const html=generateMeetingExportHtml(m,monthKey);
+  const safeTitle=String(m.id||'회의록').replace(/[\\\/:*?"<>|]/g,'_');
+  const filename=`${safeTitle}.html`;
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  const file=new File([blob],filename,{type:'text/html'});
+  // Mobile: try native Web Share API → user picks "Drive에 저장" or any cloud app
+  if(navigator.canShare&&navigator.canShare({files:[file]})){
+    try{
+      await navigator.share({files:[file],title:m.id||'회의록',text:`${m.id||'회의록'} - 서울인력`});
+      if(typeof showToast==='function')showToast('공유 완료 ✓','success',1800);
+      return;
+    }catch(e){if(e.name==='AbortError')return;}
+  }
+  // Desktop fallback: download HTML + open Drive in new tab
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  window.open('https://drive.google.com/drive/my-drive','_blank','noopener');
+  if(typeof showToast==='function')showToast('📁 파일이 다운로드되었습니다 → Drive에 끌어놓으세요','info',4500);
+}
+
+function generateMeetingExportHtml(m,monthKey){
+  const title=getMeetingDisplayTitle(m,monthKey);
+  const date=formatMeetingDate(m.date);
+  const cols=m.columns||[];
+  const rows=m.rows||[];
+  const escAttr=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const colHeaders=cols.map(c=>{
+    const key=meetingColKey(c);
+    const colorMap={bv:'#475569',issue:'#b91c1c',ask:'#1e40af',event:'#854d0e',answer:'#6b21a8',memo:'#15803d'};
+    const bgMap={bv:'#f1f5f9',issue:'#fee2e2',ask:'#dbeafe',event:'#fef3c7',answer:'#f3e8ff',memo:'#dcfce7'};
+    const color=colorMap[key]||'#334155';
+    const bg=bgMap[key]||'#f8fafc';
+    return `<th style="background:${bg};color:${color}">${escAttr(c)}</th>`;
+  }).join('');
+  const trs=rows.map(r=>{
+    const tds=cols.map((_,i)=>{
+      const html=cellGetHtml(r[i]);
+      const firstColStyle=i===0?' style="font-weight:800;background:#f8fafc"':'';
+      return `<td${firstColStyle}>${html}</td>`;
+    }).join('');
+    return `<tr>${tds}</tr>`;
+  }).join('');
+  return `<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escAttr(title)}</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&family=Noto+Serif+KR:wght@400;700&family=Nanum+Pen+Script&family=Gowun+Dodum&family=Nanum+Myeongjo:wght@400;700&family=Black+Han+Sans&family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans KR',sans-serif;color:#0f172a;background:#fff;padding:36px 24px;max-width:1200px;margin:0 auto;line-height:1.6}
+.doc-hdr{text-align:center;border-bottom:3px solid #0f172a;padding-bottom:18px;margin-bottom:28px}
+.doc-title{font-size:26px;font-weight:900;color:#020617;letter-spacing:-.4px;margin-bottom:6px}
+.doc-meta{font-size:13px;color:#64748b;letter-spacing:1px;text-transform:uppercase;font-weight:600}
+.doc-org{font-size:11px;color:#94a3b8;margin-top:6px;letter-spacing:2px}
+table{width:100%;border-collapse:collapse;border:2px solid #94a3b8;border-radius:8px;overflow:hidden}
+thead th{font-size:13px;font-weight:900;padding:12px 11px;text-align:left;border-bottom:3px solid #1e293b;letter-spacing:.4px}
+tbody td{border-bottom:1.5px solid #cbd5e1;border-right:1.5px solid #cbd5e1;padding:11px 13px;vertical-align:top;font-size:13px;line-height:1.6;background:#fff}
+tbody td:last-child{border-right:none}
+tbody tr:last-child td{border-bottom:none}
+.doc-foot{margin-top:24px;text-align:center;color:#94a3b8;font-size:11px}
+@media print{body{padding:14mm 12mm}}
+</style></head>
+<body>
+<div class="doc-hdr">
+<div class="doc-org">서울인력 SEOUL HR</div>
+<div class="doc-title">${escAttr(title)}</div>
+<div class="doc-meta">${escAttr(date)}</div>
+</div>
+<table><thead><tr>${colHeaders}</tr></thead><tbody>${trs}</tbody></table>
+<div class="doc-foot">생성일: ${new Date().toLocaleString('ko-KR')}</div>
+</body></html>`;
+}
 
 // ══════════ v23: PINNED NOTES (📌 메모 - persistent until manually deleted) ══════════
 const PIN_KEY='seoulPinnedNotes_v1';
