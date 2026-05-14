@@ -1385,7 +1385,7 @@ let STAFF=[
   {name:'디아나',  langs:['U','R','KZ','KY'],days:[0,4,6],      type:'jeong',fixedRules:[],preferBase:true,neverBase:false,neverHosps:['슈퍼맨']},
   {name:'리솔랏',  langs:['U','R','KZ','KY'],days:[0,1,2,5,6],  type:'jeong',fixedRules:[{hospId:'다정한',lang:'R'},{hospId:'다정한',lang:'U'}],preferBase:true,neverBase:false,neverHosps:['슈퍼맨']},
   // Russia — never 브라운, prefer 니어
-  {name:'유이리나5',langs:['R'],         days:[1,2,4,5,6],  type:'jeong',fixedRules:[],neverBase:true,preferNear:true},
+  {name:'유이리나5',langs:['R'],         days:[1,2,4,5,6],  type:'jeong',fixedRules:[],neverBase:true,preferNear:true,neverHosps:['슈퍼맨','다정한','오아로']}, // v57: 브라운/청량리/오아로 절대 불가
   // Philippines
   {name:'아일린',  langs:['P','EN'],     days:[0,1,4,5,6],  type:'jeong',fixedRules:[],preferBase:true,neverBase:false},
   {name:'권마리',  langs:['P','EN'],     days:[0,1,4,5,6],  type:'jeong',fixedRules:[],preferBase:true,neverBase:false},
@@ -2105,7 +2105,19 @@ function staffScheduleFit(st,d){
   const next=demandSlot(d.hospId,d.times,d.allDay);
   const slots=st?.slots||[];
   if(!slots.length)return{can:true,isMoved:false,fromH:null};
-  if(slots.some(sl=>sl.hospId===next.hospId))return{can:true,isMoved:false,fromH:null};
+  // v57: Round-trip support (A→B→A).
+  // If already have a slot at next.hospId BUT there's a LATER intermediate slot at another hospital,
+  // this is a RETURN trip — check timing and mark as moved (fromH = last intermediate hospital).
+  if(slots.some(sl=>sl.hospId===next.hospId)){
+    // Find latest slot at a DIFFERENT hospital that ends before next.start
+    const intermediates=slots.filter(sl=>sl.hospId!==next.hospId&&!sl.allDay);
+    const lastInter=intermediates.sort((a,b)=>b.end-a.end)[0];
+    if(lastInter){
+      const canReturn=lastInter.end+travelTime(lastInter.hospId,next.hospId)<=next.start;
+      if(canReturn)return{can:true,isMoved:true,fromH:lastInter.hospId,isReturnTrip:true};
+    }
+    return{can:true,isMoved:false,fromH:null};
+  }
   if(next.allDay)return{can:false};
   const compatibleWithAll=()=>slots.every(sl=>{
     if(sl.allDay)return false;
@@ -2932,7 +2944,7 @@ function doGenerate(){
     });
     results.push({demand:d,assigned:picked.map(x=>({
       name:x.s.name,type:x.s.type,langs:x.s.langs,
-      isMoved:x.isMoved,fromH:x.fromH,lk:x.lk,fx:x.fx,mgr:x.mgr,rn:x.rn,useEng
+      isMoved:x.isMoved,fromH:x.fromH,isReturnTrip:x.isReturnTrip,lk:x.lk,fx:x.fx,mgr:x.mgr,rn:x.rn,useEng
     })),useEng,noStaff:false});
   });
 
@@ -3359,7 +3371,7 @@ function renderResult(results,standby,warns,totalAvail,todayLeaves,noInterpHosps
       if(a.isMoved&&a.fromH){
         if(!moveByName[a.name])moveByName[a.name]=[];
         if(!moveByName[a.name].some(x=>x.fromH===a.fromH&&x.toId===r.demand.hospId)){
-          moveByName[a.name].push({name:a.name,fromH:a.fromH,toId:r.demand.hospId,toTime:r.demand.times[0]||null});
+          moveByName[a.name].push({name:a.name,fromH:a.fromH,toId:r.demand.hospId,toTime:r.demand.times[0]||null,isReturnTrip:a.isReturnTrip});
         }
       }
     });
@@ -3474,7 +3486,19 @@ function renderResult(results,standby,warns,totalAvail,todayLeaves,noInterpHosps
         }).join(' → ');
         parts.push(`<span class="smove">→ ${chain} 이동</span>`);
       } else if(mv.length){
-        parts.push(`<span class="smove">${[...new Set(mv.map(sl=>sl.fromH))].join('/')}에서 이동</span>`);
+        // v57: Round trip detection — if fromH === this hospital's prev occurrence, show full chain
+        const fromSet=[...new Set(mv.map(sl=>sl.fromH))];
+        const isReturn=mv.some(sl=>sl.isReturnTrip);
+        if(isReturn){
+          // Build round trip chain: e.g. 니어 → 슈퍼맨 → 니어
+          const returnChain=fromSet.map(fh=>{
+            const hn=HOSPITALS.find(h=>h.id===fh)?.tn||HOSPITALS.find(h=>h.id===fh)?.name||fh;
+            return hn;
+          }).join(' → ')+` → 복귀`;
+          parts.push(`<span class="smove">↩ ${returnChain}</span>`);
+        }else{
+          parts.push(`<span class="smove">${fromSet.join('/')}에서 이동</span>`);
+        }
       }
       if(rn)parts.push(`<span class="sreturn">${rn}</span>`);
       if(aLk)parts.push(`<span class="slock-badge">🔒고정</span>`);
