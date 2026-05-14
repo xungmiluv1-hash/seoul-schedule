@@ -1449,15 +1449,22 @@ const saveLD=(action='')=>{try{localStorage.setItem('seoulLeave_v4',JSON.stringi
 // v44: Staff save — immediate cloud push (no debounce) to prevent overwrite on page reload
 // v46: Staff version counter — increments each local save, compared with cloud version to prevent overwrites
 let _staffVer=parseInt(localStorage.getItem('seoulStaffVer_v1')||'0');
+const STAFF_PENDING_KEY='seoulStaffPending_v1';
 const saveStaff=(action='')=>{
   _staffVer++;
   try{
     localStorage.setItem('seoulStaff_v1',JSON.stringify(STAFF));
     localStorage.setItem('seoulStaffVer_v1',String(_staffVer));
+    // v50: store pending snapshot — survives reload, prevents cloud overwrite before push completes
+    localStorage.setItem(STAFF_PENDING_KEY,JSON.stringify({staff:STAFF,ver:_staffVer,ts:Date.now()}));
   }catch(e){}
   recordChange(action);
-  // Push immediately — do not debounce staff changes
-  if(cloudReady&&!cloudSaving){pushCloudState({silent:true});}else{scheduleCloudSave();}
+  if(cloudReady&&!cloudSaving){
+    pushCloudState({silent:true}).then(()=>{
+      // Push confirmed — safe to remove pending flag
+      localStorage.removeItem(STAFF_PENDING_KEY);
+    }).catch(()=>{});
+  }else{scheduleCloudSave();}
 };
 const saveLocks=(action='')=>{try{localStorage.setItem('seoulLocksByDate_v1',JSON.stringify(locksByDate));}catch(e){};recordChange(action);scheduleCloudSave();};
 const savePermanentLocks=(action='')=>{try{localStorage.setItem('seoulPermanentLocks_v1',JSON.stringify(permanentLocks));}catch(e){};recordChange(action);scheduleCloudSave();};
@@ -1659,18 +1666,38 @@ function cloudPayload(){
 }
 function applyCloudData(data){
   if(data?.leaveData&&typeof data.leaveData==='object')leaveData=data.leaveData;
-  // v46: Use version counter — cloud wins only if its staffVersion >= local version
-  const localVer=parseInt(localStorage.getItem('seoulStaffVer_v1')||'0');
-  const cloudVer=data?.staffVersion||0;
-  const cloudStaffWins=cloudVer>=localVer;
-  if(Array.isArray(data?.staff)&&cloudStaffWins){STAFF=data.staff;_staffVer=cloudVer;}
+  // v50: Check pending staff snapshot — if push didn't complete before reload, use local
+  const pendingRaw=localStorage.getItem(STAFF_PENDING_KEY);
+  let usedPending=false;
+  if(pendingRaw){
+    try{
+      const pending=JSON.parse(pendingRaw);
+      const cloudSavedAt=new Date(data?.savedAt||0).getTime();
+      if(pending.ts>cloudSavedAt||(pending.ver>(data?.staffVersion||0))){
+        // Local edit is newer than cloud — restore pending staff and re-push
+        STAFF=pending.staff;_staffVer=pending.ver;
+        localStorage.setItem('seoulStaff_v1',JSON.stringify(STAFF));
+        localStorage.setItem('seoulStaffVer_v1',String(_staffVer));
+        usedPending=true;
+        // Re-push to cloud now (might have failed last time)
+        setTimeout(()=>pushCloudState({silent:true}).then(()=>localStorage.removeItem(STAFF_PENDING_KEY)).catch(()=>{}),500);
+      }else{
+        localStorage.removeItem(STAFF_PENDING_KEY); // cloud is newer, clear stale pending
+      }
+    }catch(e){localStorage.removeItem(STAFF_PENDING_KEY);}
+  }
+  if(!usedPending){
+    const localVer=parseInt(localStorage.getItem('seoulStaffVer_v1')||'0');
+    const cloudVer=data?.staffVersion||0;
+    if(Array.isArray(data?.staff)&&cloudVer>=localVer){STAFF=data.staff;_staffVer=cloudVer;}
+  }
   if(data?.locksByDate&&typeof data.locksByDate==='object')locksByDate=data.locksByDate;
   if(Array.isArray(data?.permanentLocks))permanentLocks=data.permanentLocks;
   if(Array.isArray(data?.changeHistory))changeHistory=data.changeHistory.slice(0,30);
   suppressCloudSave=true;
   try{
     localStorage.setItem('seoulLeave_v4',JSON.stringify(leaveData));
-    if(cloudStaffWins){localStorage.setItem('seoulStaff_v1',JSON.stringify(STAFF));localStorage.setItem('seoulStaffVer_v1',String(_staffVer));}
+    if(!usedPending){localStorage.setItem('seoulStaff_v1',JSON.stringify(STAFF));localStorage.setItem('seoulStaffVer_v1',String(_staffVer));}
     localStorage.setItem('seoulLocksByDate_v1',JSON.stringify(locksByDate));
     localStorage.setItem('seoulPermanentLocks_v1',JSON.stringify(permanentLocks));
     localStorage.setItem('seoulChangeHistory_v1',JSON.stringify(changeHistory));
