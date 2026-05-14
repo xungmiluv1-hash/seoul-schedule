@@ -14,6 +14,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=DM+Mono:wght@400;500&family=Noto+Serif+KR:wght@400;700;900&family=Nanum+Pen+Script&family=Gowun+Dodum&family=Nanum+Myeongjo:wght@400;700;800&family=Black+Han+Sans&family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
 <style>
 :root{
   --bg:#fdf0f5;--bg2:#f7e0ea;--surface:#fff;--border:#f0c0d4;--border2:#e8a0be;
@@ -509,6 +510,47 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink)
   .help-fab,.help-overlay,.map-form-overlay{display:none !important;}
 }
 
+/* ══ v54: 통계 (Management Dashboard) ══ */
+#page-stats .page{max-width:1100px;}
+.stats-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px 16px;margin-bottom:22px;box-shadow:0 1px 3px rgba(15,23,42,.04);}
+.stats-toolbar .st-label{font-size:11px;font-weight:700;color:#64748b;font-family:'DM Mono',monospace;letter-spacing:1.5px;text-transform:uppercase;}
+.stats-period-btn{padding:7px 14px;border:1.5px solid #e2e8f0;background:#fff;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;color:#475569;transition:all .12s;}
+.stats-period-btn.active{background:linear-gradient(135deg,var(--navy),var(--navy2));border-color:var(--navy2);color:#fff;}
+.stats-period-btn:hover:not(.active){background:#f8fafc;border-color:#94a3b8;}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+.stats-kpi{background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;padding:18px 20px;box-shadow:0 1px 3px rgba(15,23,42,.04);}
+.stats-kpi .sk-num{font-size:32px;font-weight:900;color:#0f172a;line-height:1;letter-spacing:-1px;}
+.stats-kpi .sk-lbl{font-size:11px;font-weight:700;color:#64748b;margin-top:6px;font-family:'DM Mono',monospace;letter-spacing:.5px;text-transform:uppercase;}
+.stats-kpi .sk-sub{font-size:11px;color:#94a3b8;margin-top:3px;}
+.stats-kpi.accent{background:linear-gradient(135deg,var(--navy),var(--navy2));border:none;}
+.stats-kpi.accent .sk-num{color:#fff;}
+.stats-kpi.accent .sk-lbl{color:rgba(255,255,255,.7);}
+.stats-kpi.accent .sk-sub{color:rgba(255,255,255,.5);}
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px;}
+.chart-card{background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;padding:20px;box-shadow:0 1px 3px rgba(15,23,42,.04);}
+.chart-card.full{grid-column:1/-1;}
+.chart-card h3{font-size:13px;font-weight:800;color:#0f172a;margin-bottom:16px;display:flex;align-items:center;gap:8px;letter-spacing:-.2px;}
+.chart-card .chart-wrap{position:relative;height:240px;}
+.chart-card .chart-wrap.tall{height:320px;}
+.gap-table{width:100%;border-collapse:collapse;font-size:12px;}
+.gap-table th{background:#f8fafc;font-weight:700;padding:8px 12px;text-align:left;border-bottom:2px solid #e2e8f0;color:#475569;font-family:'DM Mono',monospace;letter-spacing:.5px;font-size:11px;}
+.gap-table td{padding:8px 12px;border-bottom:1px solid #f1f5f9;color:#0f172a;}
+.gap-table tr:last-child td{border-bottom:none;}
+.gap-tag{display:inline-block;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;}
+.gap-tag.high{background:#fee2e2;color:#b91c1c;}
+.gap-tag.mid{background:#fef3c7;color:#92400e;}
+.stats-empty{text-align:center;padding:60px 20px;color:#94a3b8;}
+.stats-empty .se-icon{font-size:48px;margin-bottom:12px;}
+.stats-empty .se-msg{font-size:14px;font-weight:700;color:#475569;}
+.stats-empty .se-sub{font-size:12px;margin-top:6px;line-height:1.6;}
+@media(max-width:760px){
+  .stats-grid{grid-template-columns:repeat(2,1fr);}
+  .charts-grid{grid-template-columns:1fr;}
+  .chart-card.full{grid-column:1;}
+  .chart-card .chart-wrap{height:200px;}
+}
+@media print{#page-stats .stats-toolbar{display:none;}}
+
 /* ══ v49: Dashboard Summary ══ */
 .dash-wrap{background:linear-gradient(135deg,#1e2d6e 0%,#2d4498 100%);border-radius:16px;padding:16px 20px;margin-bottom:22px;color:#fff;}
 .dash-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
@@ -926,6 +968,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink)
   <div class="tab" onclick="switchTab('sched')">⚡ 일일 배정</div>
   <div class="tab" onclick="switchTab('meeting')">📋 회의정보</div>
   <div class="tab" onclick="switchTab('map')">🗺️ 지도</div>
+  <div class="tab" onclick="switchTab('stats')">📊 통계</div>
 </div>
 
 <!-- CALENDAR -->
@@ -1859,7 +1902,7 @@ function shuffleSeeded(arr,s){const r=seededRand(s),a=[...arr];for(let i=a.lengt
 
 // ══════════ TAB ══════════
 function switchTab(t){
-  document.querySelectorAll('.tab').forEach((b,i)=>b.classList.toggle('active',['cal','sched','meeting','map'][i]===t));
+  document.querySelectorAll('.tab').forEach((b,i)=>b.classList.toggle('active',['cal','sched','meeting','map','stats'][i]===t));
   document.querySelectorAll('.tab-page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+t).classList.add('active');
   if(t==='cal'){
@@ -1876,6 +1919,7 @@ function switchTab(t){
   }
   if(t==='meeting')initMeetingPage();
   if(t==='map')initMapPage();
+  if(t==='stats')initStatsPage();
 }
 let _lastCloudPull=0;
 
@@ -4677,6 +4721,144 @@ function getExcptForDate(dateKey){
   return{absent,extra};
 }
 
+// ══════════ v54: 통계 (Management Dashboard) ══════════
+let _statsPeriod='week';
+let _statsCharts={};
+
+function setStatsPeriod(p,btn){
+  _statsPeriod=p;
+  document.querySelectorAll('.stats-period-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  renderStatsPage();
+}
+
+function getStatsDates(period){
+  const today=new Date();today.setHours(23,59,59,999);
+  const from=new Date();
+  if(period==='week'){from.setDate(today.getDate()-today.getDay()+1);if(from.getDay()===0)from.setDate(from.getDate()-6);}
+  else if(period==='month'){from.setDate(1);from.setHours(0,0,0,0);}
+  else if(period==='prev'){from.setDate(1);from.setMonth(from.getMonth()-1);from.setHours(0,0,0,0);today.setDate(0);today.setHours(23,59,59,999);}
+  else{from.setDate(from.getDate()-30);from.setHours(0,0,0,0);}
+  const fromKey=`${from.getFullYear()}-${String(from.getMonth()+1).padStart(2,'0')}-${String(from.getDate()).padStart(2,'0')}`;
+  const toKey=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  return{fromKey,toKey};
+}
+
+function calcStats(period){
+  const raw=JSON.parse(localStorage.getItem('seoulDailyBookings_v1')||'{}');
+  const {fromKey,toKey}=getStatsDates(period);
+  const keys=Object.keys(raw).filter(k=>k>=fromKey&&k<=toKey).sort();
+  if(!keys.length)return null;
+
+  const staffDays={},langDemand={},hospAssign={},hospGaps={};
+  let totalAssign=0,totalPatients=0,totalGaps=0;
+
+  keys.forEach(k=>{
+    const b=raw[k];if(!b)return;
+    // Staff work days
+    if(b.staffLocation)Object.keys(b.staffLocation).forEach(n=>{staffDays[n]=(staffDays[n]||0)+1;});
+    // Hospital demands
+    if(b.byHosp)Object.entries(b.byHosp).forEach(([hid,h])=>{
+      (h.demands||[]).forEach(d=>{
+        const cnt=d.assigned?.length||0;
+        totalAssign+=cnt;
+        // Language demand (count assigned workers per lang)
+        const l=d.lang||'?';
+        langDemand[l]=(langDemand[l]||0)+cnt;
+        // Hospital assignment count
+        if(cnt>0){hospAssign[hid]=(hospAssign[hid]||0)+cnt;}
+        // Gaps (배정 불가)
+        if(cnt===0&&d.lang&&d.lang!=='K'){
+          const gk=`${hid}×${d.lang}`;
+          hospGaps[gk]=(hospGaps[gk]||0)+1;
+          totalGaps++;
+        }
+      });
+    });
+  });
+
+  return{staffDays,langDemand,hospAssign,hospGaps,totalAssign,totalPatients,totalGaps,days:keys.length};
+}
+
+function hospName(id){const h=typeof HOSPITALS!=='undefined'?HOSPITALS.find(x=>x.id===id):null;return h?.tn||h?.name||id;}
+function langName(l){const d=typeof LANGS!=='undefined'?LANGS[l]:null;return d?`${d.flag||''} ${d.name||l}`:l;}
+
+function destroyCharts(){Object.values(_statsCharts).forEach(c=>{try{c.destroy();}catch(e){}});_statsCharts={};}
+
+function initStatsPage(){renderStatsPage();}
+
+function renderStatsPage(){
+  if(typeof Chart==='undefined'){
+    setTimeout(renderStatsPage,300);return;
+  }
+  destroyCharts();
+  const stats=calcStats(_statsPeriod);
+  const kpiEl=document.getElementById('statsKpi');
+  const chartsEl=document.getElementById('statsCharts');
+  if(!kpiEl||!chartsEl)return;
+
+  if(!stats){
+    kpiEl.innerHTML='';
+    chartsEl.innerHTML=`<div class="stats-empty chart-card full"><div class="se-icon">📊</div><div class="se-msg">아직 배정 데이터가 없어요</div><div class="se-sub">배정 생성 후 최대 30일간의 데이터가 여기에 표시됩니다</div></div>`;
+    return;
+  }
+
+  // KPI cards
+  const topStaff=Object.entries(stats.staffDays).sort((a,b)=>b[1]-a[1])[0];
+  const topHosp=Object.entries(stats.hospAssign).sort((a,b)=>b[1]-a[1])[0];
+  kpiEl.innerHTML=`
+    <div class="stats-kpi accent"><div class="sk-num">${stats.days}</div><div class="sk-lbl">배정 일수</div><div class="sk-sub">데이터 있는 날</div></div>
+    <div class="stats-kpi"><div class="sk-num">${stats.totalAssign}</div><div class="sk-lbl">총 배정 건수</div><div class="sk-sub">통역사 × 담당</div></div>
+    <div class="stats-kpi"><div class="sk-num" style="color:#dc2626">${stats.totalGaps}</div><div class="sk-lbl">배정 공백</div><div class="sk-sub">통역사 없었던 수요</div></div>
+    <div class="stats-kpi"><div class="sk-num">${Object.keys(stats.staffDays).length}</div><div class="sk-lbl">출근 직원 수</div><div class="sk-sub">${topStaff?`최다: ${topStaff[0]} (${topStaff[1]}일)`:''}</div></div>`;
+
+  // Sort data
+  const staffSorted=Object.entries(stats.staffDays).sort((a,b)=>b[1]-a[1]).slice(0,15);
+  const langSorted=Object.entries(stats.langDemand).sort((a,b)=>b[1]-a[1]);
+  const hospSorted=Object.entries(stats.hospAssign).sort((a,b)=>b[1]-a[1]);
+  const gapSorted=Object.entries(stats.hospGaps).sort((a,b)=>b[1]-a[1]).slice(0,10);
+
+  // Theme colors
+  const navyColors=['#1e2d6e','#2d4498','#3b5bdb','#4c6ef5','#748ffc','#91a7ff','#bac8ff','#dbe4ff'];
+  const langColors={'V':'#c05621','T':'#b45309','I':'#0369a1','U':'#15803d','P':'#7c3aed','R':'#475569','EN':'#1e40af','MG':'#0369a1','MY':'#b91c1c','N':'#0e7490','C':'#1d4ed8','K':'#334155'};
+
+  chartsEl.innerHTML=`
+    <div class="chart-card full"><h3>👤 직원별 근무 일수 (상위 ${staffSorted.length}명)</h3><div class="chart-wrap tall"><canvas id="chartStaff"></canvas></div></div>
+    <div class="chart-card"><h3>🌏 언어별 배정 비율</h3><div class="chart-wrap"><canvas id="chartLang"></canvas></div></div>
+    <div class="chart-card"><h3>🏥 병원별 배정 건수</h3><div class="chart-wrap"><canvas id="chartHosp"></canvas></div></div>
+    <div class="chart-card full"><h3>⚠️ 배정 공백 현황 <span style="font-size:11px;color:#94a3b8;font-weight:500">(통역사 없었던 병원×언어)</span></h3>${renderGapTable(gapSorted,stats)}</div>`;
+
+  // Chart: staff days (horizontal bar)
+  const ctx1=document.getElementById('chartStaff');
+  if(ctx1&&staffSorted.length){
+    _statsCharts.staff=new Chart(ctx1,{type:'bar',data:{labels:staffSorted.map(s=>s[0]),datasets:[{data:staffSorted.map(s=>s[1]),backgroundColor:staffSorted.map((_,i)=>navyColors[i%navyColors.length]),borderRadius:6,borderSkipped:false}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.raw}일`}}},scales:{x:{grid:{color:'#f1f5f9'},ticks:{stepSize:1,font:{size:11}}},y:{grid:{display:false},ticks:{font:{size:12,weight:'bold'}}}}}});
+  }
+
+  // Chart: language doughnut
+  const ctx2=document.getElementById('chartLang');
+  if(ctx2&&langSorted.length){
+    _statsCharts.lang=new Chart(ctx2,{type:'doughnut',data:{labels:langSorted.map(([l])=>langName(l)),datasets:[{data:langSorted.map(([,v])=>v),backgroundColor:langSorted.map(([l])=>langColors[l]||'#94a3b8'),hoverOffset:8,borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{font:{size:11,family:"'Noto Sans KR',sans-serif"},padding:12,usePointStyle:true}},tooltip:{callbacks:{label:c=>`${c.label}: ${c.raw}건 (${Math.round(c.raw/langSorted.reduce((s,[,v])=>s+v,0)*100)}%)`}}}}});
+  }
+
+  // Chart: hospital bar
+  const ctx3=document.getElementById('chartHosp');
+  if(ctx3&&hospSorted.length){
+    _statsCharts.hosp=new Chart(ctx3,{type:'bar',data:{labels:hospSorted.map(([id])=>hospName(id)),datasets:[{data:hospSorted.map(([,v])=>v),backgroundColor:'rgba(45,68,152,0.85)',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.raw}건`}}},scales:{x:{grid:{display:false},ticks:{font:{size:11,weight:'bold'}}},y:{grid:{color:'#f1f5f9'},ticks:{stepSize:1}}}}});
+  }
+}
+
+function renderGapTable(gapSorted,stats){
+  if(!gapSorted.length)return'<div style="text-align:center;padding:20px;color:#94a3b8;font-size:13px">✅ 배정 공백이 없습니다!</div>';
+  const rows=gapSorted.map(([key,cnt])=>{
+    const [hid,lang]=key.split('×');
+    const hn=hospName(hid),ln=langName(lang);
+    const pct=Math.round(cnt/stats.days*100);
+    const tag=pct>=50?'<span class="gap-tag high">자주 공백</span>':'<span class="gap-tag mid">가끔 공백</span>';
+    return`<tr><td>${hn}</td><td>${ln}</td><td>${cnt}일 / ${stats.days}일</td><td>${pct}%</td><td>${tag}</td></tr>`;
+  }).join('');
+  return`<table class="gap-table"><thead><tr><th>병원</th><th>언어</th><th>공백 일수</th><th>비율</th><th>상태</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
 // ══════════ v49: DASHBOARD SUMMARY + REALTIME ══════════
 function renderDashboard(){
   const today=formatDateKey(new Date());
@@ -5399,6 +5581,23 @@ function helpQuickAsk(btn){
     </div>
     <div class="meeting-footnote">* 회의 내용은 최대 1년간 저장됩니다</div>
     <div id="meetingArea"></div>
+  </div>
+</div>
+
+<!-- STATS PAGE (v54) -->
+<div class="tab-page" id="page-stats">
+  <div class="page">
+    <div class="stats-toolbar">
+      <span class="st-label">📊 기간</span>
+      <button class="stats-period-btn active" onclick="setStatsPeriod('week',this)">이번 주</button>
+      <button class="stats-period-btn" onclick="setStatsPeriod('month',this)">이번 달</button>
+      <button class="stats-period-btn" onclick="setStatsPeriod('prev',this)">지난 달</button>
+      <button class="stats-period-btn" onclick="setStatsPeriod('all',this)">전체 (30일)</button>
+      <span style="flex:1"></span>
+      <button class="stats-period-btn" onclick="window.print()" style="color:var(--navy2);border-color:var(--navy2)">🖨️ 인쇄</button>
+    </div>
+    <div class="stats-grid" id="statsKpi"></div>
+    <div class="charts-grid" id="statsCharts"></div>
   </div>
 </div>
 
