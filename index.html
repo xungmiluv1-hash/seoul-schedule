@@ -924,12 +924,13 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink)
       <div class="leg-dot" style="background:var(--pink);margin-left:10px"></div>오늘
     </div>
 
-    <!-- 출근예외 (v44) -->
+    <!-- 추가 출근 (v47 — 비번 임시출근만) -->
     <div class="excpt-section">
       <div class="excpt-hdr">
-        <span class="excpt-title">📋 출근 예외</span>
-        <button class="excpt-add-btn" onclick="openExcptModal()">+ 예외 추가</button>
+        <span class="excpt-title">🟢 추가 출근</span>
+        <button class="excpt-add-btn" onclick="openExcptModal()">+ 추가</button>
       </div>
+      <div style="font-size:10.5px;color:#94a3b8;margin-bottom:8px;font-family:'DM Mono',monospace">비번이지만 이번에 출근하는 직원 · 배정에 자동 반영</div>
       <div class="excpt-list" id="excptList"></div>
     </div>
 
@@ -4486,18 +4487,15 @@ function saveExcpt(arr){localStorage.setItem(EXCPT_KEY,JSON.stringify(arr));if(t
 
 function renderExcptList(){
   const el=document.getElementById('excptList');if(!el)return;
-  const arr=loadExcpt();
-  if(!arr.length){el.innerHTML='<div class="excpt-empty">📋 예외 출근 기록이 없어요<br><span style="font-size:10.5px;color:#94a3b8">갑작스러운 결근이나 임시출근을 여기에 기록하세요</span></div>';return;}
+  const arr=loadExcpt().filter(e=>e.type==='extra'||!e.type); // v47: extra only
+  if(!arr.length){el.innerHTML='<div class="excpt-empty">추가 출근 직원이 없어요</div>';return;}
   el.innerHTML=arr.map((e,i)=>{
     const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    const isAbsent=e.type==='absent';
-    const icon=isAbsent?'🔴':'🟢';
-    const label=isAbsent?'결근':'임시출근';
     const sched=formatExcptSched(e);
-    return `<div class="excpt-card ${isAbsent?'absent':'extra'}">
-      <span class="excpt-icon">${icon}</span>
+    return `<div class="excpt-card extra">
+      <span class="excpt-icon">🟢</span>
       <div class="excpt-body">
-        <span class="excpt-name">${esc(e.name)}</span><span class="excpt-type">${label}</span>
+        <span class="excpt-name">${esc(e.name)}</span>
         <div class="excpt-sched">${esc(sched)}</div>
         ${e.note?`<div class="excpt-note">📝 ${esc(e.note)}</div>`:''}
       </div>
@@ -4519,78 +4517,39 @@ function formatExcptSched(e){
   return e.note?'':'메모 없음';
 }
 
-let _excptType='absent'; // track chosen type between steps
+// v47: 추가 출근 only — single-step form, no type selection
 function openExcptModal(idx){
   _excptEditing=idx!=null?idx:null;
   const arr=loadExcpt();
   const e=idx!=null?arr[idx]:null;
-  // populate datalist
-  const dl=document.getElementById('excptNameList');
-  if(dl)dl.innerHTML=STAFF.map(s=>`<option value="${s.name.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}">`).join('');
-  if(e){
-    _excptType=e.type||'absent';
-    excptShowForm(e);
-    excptUpdateNameList();
-  }else{
-    // New — show type picker first
-    document.getElementById('excptTypeStep').style.display='';
-    document.getElementById('excptFormStep').style.display='none';
-    // reset fields
-    document.getElementById('excptName').value='';
-    document.getElementById('excptDate').value='';
-    document.getElementById('excptDateTo').value='';
-    document.getElementById('excptNote').value='';
-    document.querySelectorAll('#excptDaysGrid .excpt-day-btn').forEach(b=>b.classList.remove('on'));
-  }
-  document.getElementById('excptModalOvl').classList.add('show');
-}
-function excptPickType(type){
-  _excptType=type;
-  excptShowForm(null);
+  const labelEl=document.getElementById('excptEditLabel');
+  if(labelEl)labelEl.textContent=e?'(수정)':'';
+  document.getElementById('excptName').value=e?.name||'';
+  document.getElementById('excptDate').value=e?.date||e?.dateFrom||'';
+  document.getElementById('excptDateTo').value=e?.dateTo||'';
+  document.getElementById('excptNote').value=e?.note||'';
+  const wd=e?.weekdays||[];
+  document.querySelectorAll('#excptDaysGrid .excpt-day-btn').forEach(b=>b.classList.toggle('on',wd.includes(parseInt(b.dataset.d))));
   excptUpdateNameList();
+  document.getElementById('excptModalOvl').classList.add('show');
   setTimeout(()=>document.getElementById('excptName').focus(),50);
-}
-function excptUpdateNameList(){
-  // v46: smart filter — 결근 shows staff who CAN work, 추가출근 shows staff who CANNOT
-  const dl=document.getElementById('excptNameList');if(!dl)return;
-  const dateVal=document.getElementById('excptDate')?.value;
-  let dayNum=-1;
-  if(dateVal){const d=new Date(dateVal);dayNum=d.getDay()===0?6:d.getDay()-1;}
-  let filtered=STAFF;
-  if(dayNum>=0){
-    if(_excptType==='absent'){
-      // 결근: show staff who ARE scheduled that day
-      filtered=STAFF.filter(s=>Array.isArray(s.days)&&s.days.includes(dayNum));
-    }else{
-      // 추가 출근: show staff who are NOT scheduled that day (비번)
-      filtered=STAFF.filter(s=>!Array.isArray(s.days)||!s.days.includes(dayNum));
-    }
-  }
-  dl.innerHTML=filtered.map(s=>`<option value="${s.name.replace(/"/g,'&quot;')}">`).join('');
-  // Show count hint
-  const hint=document.getElementById('excptNameHint');
-  if(hint)hint.textContent=dayNum>=0?`${filtered.length}명 표시 중`:'날짜 선택 시 자동 필터';
-}
-function excptShowForm(e){
-  document.getElementById('excptTypeStep').style.display='none';
-  document.getElementById('excptFormStep').style.display='';
-  const isAbsent=_excptType==='absent';
-  document.getElementById('excptModalTitle').textContent=(e?'수정: ':'')+(isAbsent?'🔴 결근':'🟢 추가 출근');
-  if(e){
-    document.getElementById('excptName').value=e.name||'';
-    document.getElementById('excptDate').value=e.date||e.dateFrom||'';
-    document.getElementById('excptDateTo').value=e.dateTo||'';
-    document.getElementById('excptNote').value=e.note||'';
-    const wd=e.weekdays||[];
-    document.querySelectorAll('#excptDaysGrid .excpt-day-btn').forEach(b=>{b.classList.toggle('on',wd.includes(parseInt(b.dataset.d)));});
-  }
-}
-function excptBackToTypeStep(){
-  document.getElementById('excptTypeStep').style.display='';
-  document.getElementById('excptFormStep').style.display='none';
 }
 function closeExcptModal(){document.getElementById('excptModalOvl').classList.remove('show');_excptEditing=null;}
 function renderExcptSchedInputs(){}// kept for compat
+// v47: only show non-scheduled staff (비번) in name list for 추가출근
+function excptUpdateNameList(){
+  const dl=document.getElementById('excptNameList');if(!dl)return;
+  const dateVal=document.getElementById('excptDate')?.value;
+  let filtered=STAFF;
+  if(dateVal){
+    const d=new Date(dateVal);
+    const dayNum=d.getDay()===0?6:d.getDay()-1;
+    filtered=STAFF.filter(s=>!Array.isArray(s.days)||!s.days.includes(dayNum));
+  }
+  dl.innerHTML=filtered.map(s=>`<option value="${s.name.replace(/"/g,'&quot;')}">`).join('');
+  const hint=document.getElementById('excptNameHint');
+  if(hint)hint.textContent=dateVal?`비번 직원 ${filtered.length}명 표시`:'날짜 선택 시 비번인 직원만 표시';
+}
 function saveExcptEntry(){
   const name=document.getElementById('excptName').value.trim();
   if(!name){alert('직원 이름을 입력하세요.');return;}
@@ -4602,7 +4561,7 @@ function saveExcptEntry(){
   if(weekdays.length){schedType='weekday';}
   else if(dateVal&&dateToVal&&dateToVal!==dateVal){schedType='range';date=dateVal;dateTo=dateToVal;}
   else{schedType='date';date=dateVal;}
-  const entry={id:_excptEditing!=null?loadExcpt()[_excptEditing]?.id:('ex_'+Date.now()),name,type:_excptType,schedType,note};
+  const entry={id:_excptEditing!=null?loadExcpt()[_excptEditing]?.id:('ex_'+Date.now()),name,type:'extra',schedType,note};
   if(schedType==='weekday')entry.weekdays=weekdays;
   else if(schedType==='range'){entry.dateFrom=date;entry.dateTo=dateTo;}
   else entry.date=date||'';
@@ -5320,51 +5279,41 @@ function helpQuickAsk(btn){
 
 <!-- 출근예외 modal (v44) -->
 <!-- 출근예외 modal v45: 2-step, simple -->
+<!-- 추가 출근 modal (v47 — single step, extra only) -->
 <div class="excpt-modal-ovl" id="excptModalOvl" onclick="if(event.target===this)closeExcptModal()">
   <div class="excpt-modal">
-    <div id="excptTypeStep">
-      <h3 style="margin:0 0 10px;font-size:16px">출근 예외 추가</h3>
-      <p style="font-size:12.5px;color:#64748b;margin:0 0 16px">어떤 경우인가요?</p>
-      <div style="display:flex;gap:10px">
-        <button class="excpt-type-pick absent" onclick="excptPickType('absent')">🔴<br><b>결근</b><br><small>못 나오는 날</small></button>
-        <button class="excpt-type-pick extra" onclick="excptPickType('extra')">🟢<br><b>추가 출근</b><br><small>비번인데 나오는 날</small></button>
+    <h3 style="margin:0 0 16px;font-size:16px">🟢 추가 출근 <span id="excptEditLabel" style="font-size:12px;color:#64748b;font-weight:500"></span></h3>
+    <div class="excpt-field">
+      <label>직원 이름 *</label>
+      <input type="text" id="excptName" placeholder="이름" list="excptNameList" autocomplete="off">
+      <datalist id="excptNameList"></datalist>
+      <div id="excptNameHint" style="font-size:10.5px;color:#94a3b8;margin-top:3px">날짜 선택 시 비번인 직원만 표시</div>
+    </div>
+    <div class="excpt-field">
+      <label>날짜</label>
+      <div class="excpt-row">
+        <input type="date" id="excptDate" oninput="excptUpdateNameList()">
+        <input type="date" id="excptDateTo" placeholder="종료일 (하루면 비워도 됨)">
       </div>
     </div>
-    <div id="excptFormStep" style="display:none">
-      <h3 id="excptModalTitle" style="margin:0 0 16px;font-size:16px">결근 추가</h3>
-      <div class="excpt-field">
-        <label>직원 이름 *</label>
-        <input type="text" id="excptName" placeholder="이름" list="excptNameList" autocomplete="off">
-        <datalist id="excptNameList"></datalist>
-        <div id="excptNameHint" style="font-size:10.5px;color:#94a3b8;margin-top:3px">날짜 선택 시 자동 필터</div>
+    <div class="excpt-field">
+      <label>매주 반복 <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px;color:#94a3b8">(날짜 대신 요일 선택 가능)</span></label>
+      <div class="excpt-days-grid" id="excptDaysGrid">
+        <button type="button" class="excpt-day-btn" data-d="0" onclick="this.classList.toggle('on')">월</button>
+        <button type="button" class="excpt-day-btn" data-d="1" onclick="this.classList.toggle('on')">화</button>
+        <button type="button" class="excpt-day-btn" data-d="2" onclick="this.classList.toggle('on')">수</button>
+        <button type="button" class="excpt-day-btn" data-d="4" onclick="this.classList.toggle('on')">금</button>
+        <button type="button" class="excpt-day-btn" data-d="5" onclick="this.classList.toggle('on')">토</button>
+        <button type="button" class="excpt-day-btn" data-d="6" onclick="this.classList.toggle('on')">일</button>
       </div>
-      <div class="excpt-field">
-        <label>날짜</label>
-        <div class="excpt-row">
-          <input type="date" id="excptDate" oninput="excptUpdateNameList()">
-          <input type="date" id="excptDateTo" placeholder="종료일 (같은 날이면 비워도 됨)">
-        </div>
-        <div style="font-size:10.5px;color:#94a3b8;margin-top:3px">종료일 비우면 하루만. 또는 아래 요일 반복</div>
-      </div>
-      <div class="excpt-field">
-        <label>매주 반복 <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px;color:#94a3b8">(날짜 대신 선택 가능)</span></label>
-        <div class="excpt-days-grid" id="excptDaysGrid">
-          <button type="button" class="excpt-day-btn" data-d="0" onclick="this.classList.toggle('on')">월</button>
-          <button type="button" class="excpt-day-btn" data-d="1" onclick="this.classList.toggle('on')">화</button>
-          <button type="button" class="excpt-day-btn" data-d="2" onclick="this.classList.toggle('on')">수</button>
-          <button type="button" class="excpt-day-btn" data-d="4" onclick="this.classList.toggle('on')">금</button>
-          <button type="button" class="excpt-day-btn" data-d="5" onclick="this.classList.toggle('on')">토</button>
-          <button type="button" class="excpt-day-btn" data-d="6" onclick="this.classList.toggle('on')">일</button>
-        </div>
-      </div>
-      <div class="excpt-field">
-        <label>메모 <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px;color:#94a3b8">(선택)</span></label>
-        <input type="text" id="excptNote" placeholder="이유나 메모...">
-      </div>
-      <div class="excpt-modal-btns">
-        <button class="cancel" onclick="excptBackToTypeStep()">← 뒤로</button>
-        <button class="save" onclick="saveExcptEntry()">저장</button>
-      </div>
+    </div>
+    <div class="excpt-field">
+      <label>메모 <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:10px;color:#94a3b8">(선택)</span></label>
+      <input type="text" id="excptNote" placeholder="이유나 메모...">
+    </div>
+    <div class="excpt-modal-btns">
+      <button class="cancel" onclick="closeExcptModal()">취소</button>
+      <button class="save" onclick="saveExcptEntry()">저장</button>
     </div>
   </div>
 </div>
