@@ -4508,13 +4508,13 @@ function renderExcptList(){
 }
 
 function formatExcptSched(e){
+  const dayNames=(wd)=>(wd||[]).map(d=>DAYS_EXCPT[DAYS_EXCPT_IDX.indexOf(d)]||'').filter(Boolean).join('/');
   if(e.schedType==='date')return e.date||'날짜 미정';
   if(e.schedType==='range')return `${e.dateFrom||'?'} ~ ${e.dateTo||'?'}`;
-  if(e.schedType==='weekday'){
-    const days=(e.weekdays||[]).map(d=>DAYS_EXCPT[DAYS_EXCPT_IDX.indexOf(d)]||'').filter(Boolean);
-    return `매주 ${days.join('/')}`;
-  }
-  return e.note?'':'메모 없음';
+  if(e.schedType==='weekday')return `매주 ${dayNames(e.weekdays)}요일`;
+  // v48: range+weekday — "5/15~5/30 중 금요일만"
+  if(e.schedType==='range_weekday')return `${e.dateFrom||'?'} ~ ${e.dateTo||'?'} 중 ${dayNames(e.weekdays)}요일`;
+  return e.note||'';
 }
 
 // v47: 추가 출근 only — single-step form, no type selection
@@ -4557,14 +4557,19 @@ function saveExcptEntry(){
   const dateVal=document.getElementById('excptDate').value;
   const dateToVal=document.getElementById('excptDateTo').value;
   const weekdays=[...document.querySelectorAll('#excptDaysGrid .excpt-day-btn.on')].map(b=>parseInt(b.dataset.d));
-  let schedType='date',date,dateTo;
-  if(weekdays.length){schedType='weekday';}
-  else if(dateVal&&dateToVal&&dateToVal!==dateVal){schedType='range';date=dateVal;dateTo=dateToVal;}
-  else{schedType='date';date=dateVal;}
+  // v48: determine schedType based on combination of inputs
+  let schedType='date';
+  const hasRange=dateVal&&dateToVal&&dateToVal!==dateVal;
+  const hasWeekdays=weekdays.length>0;
+  if(hasRange&&hasWeekdays) schedType='range_weekday';  // range + weekdays = only those days in range
+  else if(!hasRange&&hasWeekdays) schedType='weekday';  // weekdays only = every week forever
+  else if(hasRange&&!hasWeekdays) schedType='range';    // range only = all days in range
+  else schedType='date';                                // single date
   const entry={id:_excptEditing!=null?loadExcpt()[_excptEditing]?.id:('ex_'+Date.now()),name,type:'extra',schedType,note};
-  if(schedType==='weekday')entry.weekdays=weekdays;
-  else if(schedType==='range'){entry.dateFrom=date;entry.dateTo=dateTo;}
-  else entry.date=date||'';
+  if(schedType==='range_weekday'){entry.dateFrom=dateVal;entry.dateTo=dateToVal;entry.weekdays=weekdays;}
+  else if(schedType==='weekday')entry.weekdays=weekdays;
+  else if(schedType==='range'){entry.dateFrom=dateVal;entry.dateTo=dateToVal;}
+  else entry.date=dateVal||'';
   const arr=loadExcpt();
   if(_excptEditing!=null){arr[_excptEditing]=entry;}else{arr.push(entry);}
   saveExcpt(arr);closeExcptModal();renderExcptList();
@@ -4586,6 +4591,8 @@ function getExcptForDate(dateKey){
     if(e.schedType==='date')matches=e.date===dateKey;
     else if(e.schedType==='range'&&e.dateFrom&&e.dateTo)matches=dateKey>=e.dateFrom&&dateKey<=e.dateTo;
     else if(e.schedType==='weekday')matches=(e.weekdays||[]).includes(dayNum);
+    // v48: range_weekday — only on specific weekdays within the date range
+    else if(e.schedType==='range_weekday')matches=e.dateFrom&&e.dateTo&&dateKey>=e.dateFrom&&dateKey<=e.dateTo&&(e.weekdays||[]).includes(dayNum);
     else if(e.schedType==='flex')matches=false;
     if(matches){if(e.type==='absent')absent.push(e.name);else extra.push(e.name);}
   });
@@ -5294,6 +5301,9 @@ function helpQuickAsk(btn){
       <div class="excpt-row">
         <input type="date" id="excptDate" oninput="excptUpdateNameList()">
         <input type="date" id="excptDateTo" placeholder="종료일 (하루면 비워도 됨)">
+        </div>
+        <div style="font-size:10.5px;color:#3b82f6;margin-top:5px;line-height:1.6">💡 <b>기간 + 요일 같이 선택</b>하면 → 그 기간 중 선택한 요일에만 적용<br>예) 5/15~5/30 + 금 선택 = 5/15~5/30 사이 매 금요일만</div>
+        <div style="display:none"> <!-- placeholder close-div for existing structure -->
       </div>
     </div>
     <div class="excpt-field">
