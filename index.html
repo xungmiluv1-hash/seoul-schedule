@@ -1710,8 +1710,11 @@ function applyCloudData(data){
     normalizeStaffRules();
   }finally{suppressCloudSave=false;}
   renderCalendar();renderStaffTable();loadSelectedLocksIntoEditor();renderPermanentLockEditor();updateLeaveBanner();renderChangeHistory();
-  // Re-render synced sections if they're currently visible
+  // v51 fix: render ALL synced sections after cloud pull
   if(typeof renderPinnedNotes==='function')renderPinnedNotes();
+  if(typeof renderExcptList==='function')renderExcptList();       // 추가출근 — was missing!
+  if(typeof renderDashboard==='function')renderDashboard();
+  if(typeof updateHeaderStats==='function')updateHeaderStats();
   if(typeof renderMeetingArea==='function'&&document.getElementById('page-meeting')?.classList.contains('active'))renderMeetingArea();
   if(typeof renderMapMarkers==='function'&&_leafletMap){renderMapMarkers();renderMapSidebar();}
 }
