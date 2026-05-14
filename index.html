@@ -1449,6 +1449,7 @@ let changeHistory=[];
 let pendingNewOldData={};
 let cloudConfig={url:'',key:''};
 let cloudReady=false,cloudSaving=false,cloudSaveTimer=null,suppressCloudSave=false,cloudStatusMode='local';
+let _dispatchedOutToday=[]; // v60: module-level so renderResult can access it
 let _cloudPullInFlight=false; // v29: block saves during initial pull to prevent race
 let editAuthorizedName=sessionStorage.getItem('seoulEditorName')||'';
 let pendingAuthAction=null,pendingAuthElement=null;
@@ -2731,9 +2732,9 @@ function doGenerate(){
   const seed=getDaySeed();
   // v44+v59: merge 출근예외 and dispatch — absent staff excluded, extra staff added
   const {absent:excptAbsent,extra:excptExtra}=getExcptForDate(dk||'');
-  // v59: dispatched-out staff are treated as absent for today
-  const dispatchedOut=(loadDispatch()||[]).filter(d=>d.isOutgoing&&d.days.includes(selectedDay)).map(d=>d.name);
-  const allAbsent=[...new Set([...todayLeaves,...excptAbsent,...dispatchedOut])];
+  // v60 fix: use module-level var so renderResult can access it
+  _dispatchedOutToday=(loadDispatch()||[]).filter(d=>d.isOutgoing&&d.days.includes(selectedDay)).map(d=>d.name);
+  const allAbsent=[...new Set([...todayLeaves,...excptAbsent,..._dispatchedOutToday])];
 
   // Filter staff
   let availPool=STAFF.filter(s=>{
@@ -3543,7 +3544,7 @@ function renderResult(results,standby,warns,totalAvail,todayLeaves,noInterpHosps
 
   if(todayLeaves.length)html+=`<div class="leave-banner show">🏖️ <b>휴무 제외:</b> ${todayLeaves.join(', ')}</div>`;
   // v59: show dispatched-out staff banner
-  if(dispatchedOut.length)html+=`<div class="leave-banner show" style="background:#fef9c3;border-color:#fde047;color:#854d0e">📤 <b>타 지점 파견:</b> ${dispatchedOut.join(', ')}</div>`;
+  if(_dispatchedOutToday&&_dispatchedOutToday.length)html+=`<div class="leave-banner show" style="background:#fef9c3;border-color:#fde047;color:#854d0e">📤 <b>타 지점 파견:</b> ${_dispatchedOutToday.join(', ')}</div>`;
   if(warns.length)html+=`<div class="warn-box">⚠️ ${warns.join('<br>⚠️ ')}</div>`;
 
   const textLines=[`[${getDateKey()} ${DAYS_KR[selectedDay]}요일 배정]`,``];
