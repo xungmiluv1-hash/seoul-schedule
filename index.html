@@ -2077,10 +2077,15 @@ function permanentBaseForStaff(s){
   if(!base||isHospitalClosedOnSelectedDay(base))return null;
   return base;
 }
+// v55: Minimum consultation duration buffer per hospital
+// Interpreter cannot leave until: last patient time + consultation buffer
+const CONSULT_MIN={'안과':120,'다정한':60,'오아로':60}; // 안과=2시간, 청량리=1시간
+const CONSULT_DEFAULT=30; // 기본 최소 상담 30분
 function demandEndMin(hospId,times,allDay){
   if(!times?.length)return allDay?getClosingMin(hospId):toMin('10:00');
   const base=toMin(times[times.length-1]);
-  return base+(hospId==='안과'?60:0);
+  const buf=CONSULT_MIN[hospId]??CONSULT_DEFAULT;
+  return base+buf;
 }
 function demandSlot(hospId,times,allDay){
   if(!times?.length)return{hospId,allDay:true,start:toMin('09:00'),end:getClosingMin(hospId)};
@@ -2815,9 +2820,14 @@ function doGenerate(){
       if(s.name==='항다르마'&&d.hospId==='슈퍼맨'&&d.times.length){
         rn='끝나고 니어';
       }else if(isWE&&d.hospId!=='니어'&&getClosingMin(d.hospId)<toMin('17:00')){
-        const la=d.times.length?toMin(d.times[d.times.length-1]):getClosingMin(d.hospId)-30;
         const returnHosp=s.name==='항다르마'&&d.hospId==='슈퍼맨'?'니어':'브라운';
-        rn=toKoreanTime(la+travelTime(d.hospId,returnHosp))+'까지 '+returnHosp+' 복귀';
+        // v55 rule #4: 슈퍼맨 and 청량리(다정한)/오아로 → no specific time, just "끝나고 브라운 이동"
+        if(['슈퍼맨','다정한','오아로'].includes(d.hospId)){
+          rn=`끝나고 ${returnHosp} 이동`;
+        }else{
+          const la=d.times.length?toMin(d.times[d.times.length-1]):getClosingMin(d.hospId)-30;
+          rn=toKoreanTime(la+travelTime(d.hospId,returnHosp))+'까지 '+returnHosp+' 복귀';
+        }
       }
 
       const ruPriority=d.mergedRU&&['닐료','디아나','리솔랏'].includes(s.name);
@@ -3371,12 +3381,17 @@ function renderResult(results,standby,warns,totalAvail,todayLeaves,noInterpHosps
     const movedFromBrown=Object.values(sm).filter(s=>s.isMoved).length&&Object.values(sm).every(s=>s.isMoved&&s.fromH==='브라운');
     const hn=hosp.id!=='브라운'&&movedFromBrown?'브라운 출근':'';
 
-    // Sat after-close suggestion for 다정한/슈퍼맨
+    // Sat after-close suggestion
     let afterNote='';
     const isEarlyClose=isWE&&getClosingMin(hosp.id)<toMin('17:00');
     if(isEarlyClose){
-      const canGo=['브라운','니어','안과','아트라인','명동','헤라'].filter(h=>h!==hosp.id&&travelTime(hosp.id,h)<60);
-      afterNote=canGo.length?`끝나면 ${canGo.join(' / ')} 이동 가능`:'끝나면 연락주기';
+      // v55 rule #4: 슈퍼맨/청량리/오아로 → simple "끝나고 브라운 이동" (no time)
+      if(['슈퍼맨','다정한','오아로'].includes(hosp.id)){
+        afterNote='끝나고 브라운 이동';
+      }else{
+        const canGo=['브라운','니어','안과','아트라인','명동','헤라'].filter(h=>h!==hosp.id&&travelTime(hosp.id,h)<60);
+        afterNote=canGo.length?`끝나면 ${canGo.join(' / ')} 이동 가능`:'끝나면 연락주기';
+      }
     }
 
     textLines.push(hosp.tn||hosp.name);
