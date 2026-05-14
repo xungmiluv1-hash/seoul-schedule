@@ -34,10 +34,17 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink)
 .hdr-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;flex-shrink:0;}
 .tabbar{background:var(--surface);border-bottom:2px solid var(--border);padding:0 24px;display:flex;position:sticky;top:54px;z-index:90;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;}
 .tabbar::-webkit-scrollbar{display:none;}
-.tab{padding:11px 22px;font-size:12px;font-weight:700;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;color:var(--ink3);transition:all .15s;user-select:none;white-space:nowrap;flex-shrink:0;}
-@media(max-width:600px){
-  .tabbar{padding:0 8px;}
-  .tab{padding:10px 14px;font-size:11.5px;}
+.tab{padding:11px 22px;font-size:12px;font-weight:700;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;color:var(--ink3);transition:all .15s;user-select:none;white-space:nowrap;flex-shrink:0;display:flex;align-items:center;gap:4px;}
+.tab .t-icon{font-size:15px;line-height:1;flex-shrink:0;}
+.tab .t-lbl{letter-spacing:-.2px;}
+.tab .t-short{display:none;font-size:10px;font-weight:800;letter-spacing:-.3px;}
+/* Mobile: icon on top + short label, tabs spread full width */
+@media(max-width:640px){
+  .tabbar{padding:0;border-bottom:1.5px solid var(--border);}
+  .tab{flex:1;flex-direction:column;justify-content:center;align-items:center;gap:3px;padding:9px 2px 10px;white-space:nowrap;}
+  .tab .t-icon{font-size:18px;}
+  .tab .t-lbl{display:none;}
+  .tab .t-short{display:block;}
 }
 .tab:hover{color:var(--pink);background:var(--pink-light);}
 .tab.active{color:var(--pink);border-bottom-color:var(--pink);background:var(--pink-light);}
@@ -964,11 +971,11 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink)
   </label>
 </div>
 <div class="tabbar">
-  <div class="tab active" onclick="switchTab('cal')">📅 월간 휴무 관리</div>
-  <div class="tab" onclick="switchTab('sched')">⚡ 일일 배정</div>
-  <div class="tab" onclick="switchTab('meeting')">📋 회의정보</div>
-  <div class="tab" onclick="switchTab('map')">🗺️ 지도</div>
-  <div class="tab" onclick="switchTab('stats')">📊 통계</div>
+  <div class="tab active" onclick="switchTab('cal')"><span class="t-icon">📅</span><span class="t-lbl">월간 휴무 관리</span><span class="t-short">휴무</span></div>
+  <div class="tab" onclick="switchTab('sched')"><span class="t-icon">⚡</span><span class="t-lbl">일일 배정</span><span class="t-short">배정</span></div>
+  <div class="tab" onclick="switchTab('meeting')"><span class="t-icon">📋</span><span class="t-lbl">회의정보</span><span class="t-short">회의</span></div>
+  <div class="tab" onclick="switchTab('map')"><span class="t-icon">🗺️</span><span class="t-lbl">지도</span><span class="t-short">지도</span></div>
+  <div class="tab" onclick="switchTab('stats')"><span class="t-icon">📊</span><span class="t-lbl">통계</span><span class="t-short">통계</span></div>
 </div>
 
 <!-- CALENDAR -->
