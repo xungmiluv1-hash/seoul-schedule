@@ -517,6 +517,14 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink)
   .help-fab,.help-overlay,.map-form-overlay{display:none !important;}
 }
 
+/* ══ v59: 지원자 textarea + name suggestion dropdown ══ */
+.support-suggest{position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid #e2e8f0;border-top:none;border-radius:0 0 10px 10px;box-shadow:0 6px 16px rgba(0,0,0,.1);z-index:200;max-height:180px;overflow-y:auto;display:none;}
+.support-suggest.show{display:block;}
+.support-sug-item{padding:8px 13px;font-size:12.5px;cursor:pointer;font-family:'Noto Sans KR',sans-serif;display:flex;align-items:center;gap:8px;}
+.support-sug-item:hover{background:#f8fafc;}
+.support-sug-item .ssi-lang{font-size:10px;background:#f1f5f9;border-radius:8px;padding:2px 7px;color:#475569;font-weight:700;}
+.support-sug-dispatch{padding:6px 13px 3px;font-size:10px;color:#94a3b8;font-weight:700;letter-spacing:.5px;text-transform:uppercase;font-family:'DM Mono',monospace;}
+
 /* ══ v54: 통계 (Management Dashboard) ══ */
 #page-stats .page{max-width:1100px;}
 .stats-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px 16px;margin-bottom:22px;box-shadow:0 1px 3px rgba(15,23,42,.04);}
@@ -1117,12 +1125,16 @@ V:1(2시)"></textarea>
     <div style="margin-bottom:14px">
       <div class="sec-label">🆘 지원자 배정 <span style="font-weight:400;font-size:9px;letter-spacing:0;text-transform:none;color:var(--ink3)">(타 지점 협조·명단 외 인원)</span></div>
       <div class="card" style="padding:12px">
-        <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
-          <button class="staff-reset-btn" type="button" onclick="openSupportPopup()" style="color:#c2410c;border-color:#fed7aa;background:#fff7ed">+ 지원 추가</button>
-          <span style="font-size:10px;color:var(--ink3)">지원 언어/국가 선택</span>
+        <div style="position:relative">
+          <textarea id="supportArea" class="textarea sched-ta" rows="3" style="font-size:12.5px;min-height:70px"
+            placeholder="이름 → 병원 언어&#10;예) 권마리 → 브라운 P&#10;타지점: 권마리 → 광주(월,화)  /  외부이름 → 서울 V"
+            oninput="debounce(parseSupport,200)()" onkeyup="onSupportKeyup(event)"></textarea>
+          <div id="supportSuggest" class="support-suggest"></div>
         </div>
-        <input type="hidden" id="supportArea" value="">
-        <div class="lock-pills" id="supportPills" style="margin-top:8px"></div>
+        <div style="font-size:10px;color:var(--ink3);margin:5px 0;line-height:1.7">
+          💡 <b>타 지점 파견</b>: 이름 → 지점명(월,화)  &nbsp;|&nbsp;  <b>타 지점 지원</b>: 외부이름 → 서울 언어
+        </div>
+        <div class="lock-pills" id="supportPills" style="margin-top:4px"></div>
       </div>
     </div>
     <div class="schedule-actions">
@@ -2490,35 +2502,147 @@ function removePermanentLock(i){
 }
 
 // ══════════ SUPPORTERS ══════════
+// v59: Dispatch schedule (Seoul ↔ other branches)
+const DISPATCH_KEY='seoulDispatch_v1';
+const DISPATCH_DAYS_MAP={월:0,화:1,수:2,금:4,토:5,일:6,월요일:0,화요일:1,수요일:2,금요일:4,토요일:5,일요일:6};
+function loadDispatch(){try{return JSON.parse(localStorage.getItem(DISPATCH_KEY)||'[]');}catch{return[];}}
+function saveDispatch(arr){localStorage.setItem(DISPATCH_KEY,JSON.stringify(arr));if(typeof scheduleCloudSave==='function')scheduleCloudSave();}
+
+function parseDispatchDays(str){
+  // Parse "(월, 화)" → [0, 1]
+  const days=[];
+  String(str||'').replace(/[()]/g,'').split(/[,，\s]+/).forEach(tok=>{
+    const d=DISPATCH_DAYS_MAP[tok.trim()];
+    if(d!==undefined&&!days.includes(d))days.push(d);
+  });
+  return days;
+}
+
 function parseSupport(){
   if(selectedDay<0)return;
-  const text=document.getElementById('supportArea').value;
+  const text=document.getElementById('supportArea')?.value||'';
   supportersByDay[selectedDay]=[];
+  const dispatches=loadDispatch();
+  const todayDispatches=new Set(dispatches.filter(d=>d.days.includes(selectedDay)&&d.isOutgoing).map(d=>d.name));
+
   text.split('\n').forEach(line=>{
     const tr=line.trim();if(!tr)return;
     const m=tr.match(/^(.+?)\s*[→\->]+\s*(.+)$/);
     if(!m)return;
-    const name=m[1].trim();
-    if(!name)return;
-    let rawHosp=m[2].trim();
-    const tail=rawHosp.match(/\s+([A-Za-z가-힣]{1,8})$/);
+    const name=m[1].trim();if(!name)return;
+    let rawDest=m[2].trim();
+
+    // v59: Check if destination is a dispatch format "외부지점(월,화)" or "서울 언어"
+    const dispatchMatch=rawDest.match(/^([가-힣A-Za-z]+)\(([^)]+)\)$/);
+    if(dispatchMatch){
+      const branch=dispatchMatch[1].trim();
+      const days=parseDispatchDays(dispatchMatch[2]);
+      // Store as dispatch rule (not a per-day supporter)
+      const existing=dispatches.findIndex(d=>d.name===name&&d.branch===branch);
+      const isOutgoing=!resolveHospId(branch)&&!['서울','SEOUL'].includes(branch.toUpperCase());
+      if(existing>=0){dispatches[existing].days=days;}
+      else{dispatches.push({id:'dp_'+Date.now()+'_'+Math.random().toString(36).slice(2),name,branch,days,isOutgoing,note:''});}
+      saveDispatch(dispatches);
+      return;
+    }
+
+    // Regular supporter
+    const tail=rawDest.match(/\s+([A-Za-z가-힣]{1,8})$/);
     const lang=tail?resolveLang(tail[1]):null;
-    if(lang)rawHosp=rawHosp.slice(0,tail.index).trim();
-    const hospId=resolveHospId(rawHosp)||(/[가-힣]/.test(rawHosp)?'__'+rawHosp:null);
+    if(lang)rawDest=rawDest.slice(0,tail.index).trim();
+
+    // "서울" destination = incoming from other branch
+    const isIncomingSeoul=['서울','seoul'].includes(rawDest.toLowerCase());
+    if(isIncomingSeoul){
+      // Add as external supporter (no hospital restriction, just by language)
+      supportersByDay[selectedDay].push({name,hospId:null,lang,isExternal:true});
+      return;
+    }
+    const hospId=resolveHospId(rawDest)||(/[가-힣]/.test(rawDest)?'__'+rawDest:null);
     if(!hospId)return;
     supportersByDay[selectedDay].push({name,hospId,lang});
   });
   renderSupportPills();
+  updateSupportDispatchNotice();
 }
+
+function updateSupportDispatchNotice(){
+  // Show today's dispatched-out staff as a notice
+  const dispatches=loadDispatch();
+  const todayOut=dispatches.filter(d=>d.isOutgoing&&d.days.includes(selectedDay));
+  const area=document.getElementById('supportPills');
+  if(!area)return;
+  // Dispatch info is rendered inline in pills
+}
+
+// v59: Live name suggestion for support textarea
+function onSupportKeyup(e){
+  if(e.key==='Escape'){hideSupportSuggest();return;}
+  showSupportSuggest(e.target);
+}
+function showSupportSuggest(ta){
+  const suggest=document.getElementById('supportSuggest');if(!suggest)return;
+  const val=ta.value;
+  const lines=val.split('\n');
+  const lastLine=lines[lines.length-1]||'';
+  // Only suggest if typing a name (no → yet on this line)
+  if(!lastLine.trim()||lastLine.includes('→')||lastLine.includes('->')){
+    hideSupportSuggest();return;
+  }
+  const q=lastLine.trim().toLowerCase();
+  const matches=STAFF.filter(s=>s.name.toLowerCase().includes(q)&&q.length>=1).slice(0,6);
+  // Also check dispatch names
+  if(!matches.length){hideSupportSuggest();return;}
+  const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  suggest.innerHTML=
+    `<div class="support-sug-dispatch">이름 선택 후 → 병원 언어 입력</div>`+
+    matches.map(s=>{
+      const langs=(s.langs||[]).join(' ');
+      return`<div class="support-sug-item" onmousedown="insertSupportName('${esc(s.name)}')"><b>${esc(s.name)}</b><span class="ssi-lang">${esc(langs)}</span></div>`;
+    }).join('');
+  suggest.classList.add('show');
+}
+function hideSupportSuggest(){const s=document.getElementById('supportSuggest');if(s)s.classList.remove('show');}
+function insertSupportName(name){
+  const ta=document.getElementById('supportArea');if(!ta)return;
+  const lines=ta.value.split('\n');
+  lines[lines.length-1]=name+' → ';
+  ta.value=lines.join('\n');
+  ta.focus();
+  // move cursor to end
+  ta.setSelectionRange(ta.value.length,ta.value.length);
+  hideSupportSuggest();
+}
+document.addEventListener('click',e=>{if(!e.target.closest('#supportArea')&&!e.target.closest('#supportSuggest'))hideSupportSuggest();});
 function renderSupportPills(){
   const c=document.getElementById('supportPills');if(!c)return;
   const sp=supportersByDay[selectedDay]||[];
-  if(!sp.length){c.innerHTML='<span style="font-size:11px;color:var(--ink3);font-style:italic">지원자 없음</span>';return;}
-  c.innerHTML=sp.map((s,i)=>{
-    const hn=HOSPITALS.find(h=>h.id===s.hospId)?.name||(s.hospId.startsWith('__')?s.hospId.slice(2):s.hospId);
+  // Also show dispatch entries for today
+  const dispatches=loadDispatch()||[];
+  const todayDispatches=dispatches.filter(d=>d.days.includes(selectedDay));
+  if(!sp.length&&!todayDispatches.length){c.innerHTML='<span style="font-size:11px;color:var(--ink3);font-style:italic">지원자 없음</span>';return;}
+  const pillHtml=sp.map((s,i)=>{
+    const hn=s.hospId?(HOSPITALS.find(h=>h.id===s.hospId)?.name||(s.hospId.startsWith('__')?s.hospId.slice(2):s.hospId)):'서울 지원';
     const l=s.lang?LANGS[s.lang]:null;
-    return`<div class="lock-pill" style="background:#fff7ed;border-color:#fed7aa"><span class="lpname" style="color:#c2410c">${s.name}</span><span style="color:var(--ink3)">→</span><span style="color:#c2410c">${hn}</span>${l?`<span style="font-size:10px;color:${l.color};background:${l.bg};padding:1px 6px;border-radius:8px">${l.flag}${s.lang}</span>`:''}<span class="lpdel" onclick="removeSupporter(${i})">×</span></div>`;
+    const extBadge=s.isExternal?`<span style="font-size:9.5px;background:#eff6ff;color:#1e40af;padding:1px 6px;border-radius:8px;font-weight:700">타지점</span>`:'';
+    return`<div class="lock-pill" style="background:#fff7ed;border-color:#fed7aa">${extBadge}<span class="lpname" style="color:#c2410c">${s.name}</span><span style="color:var(--ink3)">→</span><span style="color:#c2410c">${hn}</span>${l?`<span style="font-size:10px;color:${l.color};background:${l.bg};padding:1px 6px;border-radius:8px">${l.flag}${s.lang}</span>`:''}<span class="lpdel" onclick="removeSupporter(${i})">×</span></div>`;
   }).join('');
+  const dispatchHtml=todayDispatches.map(d=>{
+    const dayNames=['월','화','수','금','토','일'];
+    const dayIdx=[0,1,2,4,5,6];
+    const daysStr=d.days.map(n=>{const i=dayIdx.indexOf(n);return i>=0?dayNames[i]:n;}).join('/');
+    const isOut=d.isOutgoing;
+    return`<div class="lock-pill" style="background:${isOut?'#fef3c7':'#dcfce7'};border-color:${isOut?'#fbbf24':'#86efac'}"><span style="font-size:9.5px;font-weight:700;color:${isOut?'#92400e':'#15803d'}">${isOut?'📤 파견':'📥 지원'}</span><span class="lpname" style="color:${isOut?'#92400e':'#15803d'}">${d.name}</span><span style="color:var(--ink3)">→</span><span>${d.branch}</span><span style="font-size:10px;color:#94a3b8">(${daysStr})</span><span class="lpdel" onclick="removeDispatch('${d.id}')">×</span></div>`;
+  }).join('');
+  c.innerHTML=pillHtml+dispatchHtml;
+}
+function removeDispatch(id){
+  const arr=loadDispatch().filter(d=>d.id!==id);
+  saveDispatch(arr);
+  // Remove from textarea too
+  const ta=document.getElementById('supportArea');
+  if(ta){const lines=ta.value.split('\n').filter(l=>{const m=l.match(/^(.+?)\s*[→\->]+/);if(!m)return true;return!loadDispatch().find(d=>d.id===id&&d.name===m[1].trim());});ta.value=lines.join('\n');}
+  renderSupportPills();
 }
 function removeSupporter(i){
   supportersByDay[selectedDay].splice(i,1);
@@ -2551,9 +2675,11 @@ function doGenerate(){
   const dk=getDateKey();
   const todayLeaves=dk?(leaveData[dk]||[]):[];
   const seed=getDaySeed();
-  // v44: merge 출근예외 — absent staff excluded, extra staff added
+  // v44+v59: merge 출근예외 and dispatch — absent staff excluded, extra staff added
   const {absent:excptAbsent,extra:excptExtra}=getExcptForDate(dk||'');
-  const allAbsent=[...new Set([...todayLeaves,...excptAbsent])];
+  // v59: dispatched-out staff are treated as absent for today
+  const dispatchedOut=(loadDispatch()||[]).filter(d=>d.isOutgoing&&d.days.includes(selectedDay)).map(d=>d.name);
+  const allAbsent=[...new Set([...todayLeaves,...excptAbsent,...dispatchedOut])];
 
   // Filter staff
   let availPool=STAFF.filter(s=>{
@@ -3362,6 +3488,8 @@ function renderResult(results,standby,warns,totalAvail,todayLeaves,noInterpHosps
     </div>`;
 
   if(todayLeaves.length)html+=`<div class="leave-banner show">🏖️ <b>휴무 제외:</b> ${todayLeaves.join(', ')}</div>`;
+  // v59: show dispatched-out staff banner
+  if(dispatchedOut.length)html+=`<div class="leave-banner show" style="background:#fef9c3;border-color:#fde047;color:#854d0e">📤 <b>타 지점 파견:</b> ${dispatchedOut.join(', ')}</div>`;
   if(warns.length)html+=`<div class="warn-box">⚠️ ${warns.join('<br>⚠️ ')}</div>`;
 
   const textLines=[`[${getDateKey()} ${DAYS_KR[selectedDay]}요일 배정]`,``];
