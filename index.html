@@ -957,10 +957,11 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink)
       <div class="leg-dot" style="background:var(--pink);margin-left:10px"></div>오늘
     </div>
 
-    <!-- 추가 출근 (v47 — 비번 임시출근만) -->
+    <!-- 추가 출근 (v47+v52) -->
     <div class="excpt-section">
       <div class="excpt-hdr">
         <span class="excpt-title">🟢 추가 출근</span>
+        <button style="padding:5px 10px;border:1px solid #e5e7eb;background:#fff;border-radius:14px;font-size:11px;cursor:pointer;color:#475569;margin-right:6px" onclick="pullCloudState({silent:false}).then(()=>renderExcptList())" title="클라우드에서 최신 데이터 불러오기">↻</button>
         <button class="excpt-add-btn" onclick="openExcptModal()">+ 추가</button>
       </div>
       <div style="font-size:10.5px;color:#94a3b8;margin-bottom:8px;font-family:'DM Mono',monospace">비번이지만 이번에 출근하는 직원 · 배정에 자동 반영</div>
@@ -1864,10 +1865,22 @@ function switchTab(t){
   document.querySelectorAll('.tab').forEach((b,i)=>b.classList.toggle('active',['cal','sched','meeting','map'][i]===t));
   document.querySelectorAll('.tab-page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+t).classList.add('active');
-  if(t==='cal')renderCalendar();
+  if(t==='cal'){
+    renderCalendar();
+    // v52: always re-render calendar-page sections so mobile sees latest data
+    if(typeof renderExcptList==='function')renderExcptList();
+    if(typeof renderPinnedNotes==='function')renderPinnedNotes();
+    if(typeof renderDashboard==='function')renderDashboard();
+    // pull cloud if it's been > 60s since last pull
+    if(cloudReady&&Date.now()-(_lastCloudPull||0)>60000){
+      pullCloudState({silent:true});
+      _lastCloudPull=Date.now();
+    }
+  }
   if(t==='meeting')initMeetingPage();
   if(t==='map')initMapPage();
 }
+let _lastCloudPull=0;
 
 // ══════════ CALENDAR ══════════
 function renderCalendar(){
