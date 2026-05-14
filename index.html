@@ -4192,11 +4192,12 @@ function feedBunny(){
   s.feedTimes=pruneTimes(s.feedTimes);s.feedTimes.push(Date.now());
   s.intimacy=Math.min(100,(s.intimacy||0)+3);
   saveBunnyState(s);
+  // v65: declare recent30 FIRST (was crashing due to use-before-declare)
+  const recent30=s.feedTimes.filter(t=>Date.now()-t<30*60000).length;
   setBunnyAnim('eating','❤️');renderBunnyStats();
   playSound(recent30>=3?'fat':'feed');
-  setBunnyMood('surprise');
-  // 30분 안에 3번 이상 → 풍선 토끼 모드
-  const recent30=s.feedTimes.filter(t=>Date.now()-t<30*60000).length;
+  setBunnyMood(recent30>=3?'fat':'surprise');
+  setTimeout(()=>refreshBunnyMood(),1800);
   bunnySpeak(recent30>=3?pickLine(LINES.feedSpam):pickLine(LINES.full));
 }
 function batheBunny(){
@@ -4324,9 +4325,9 @@ function speakKorean(text){
   window.speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(clean);
   u.lang='ko-KR';
-  // v64: cuter voice settings — higher pitch, slightly brighter
-  u.pitch=1.35;   // higher = cuter (range 0-2, default 1)
-  u.rate=1.05;    // slightly faster = more lively
+  // v65: cute but not too fast — high pitch + slow rate = cartoon character voice
+  u.pitch=1.4;    // high = cute
+  u.rate=0.82;    // slower = clearer, less robotic
   u.volume=0.9;
   const voice=getKoreanVoice();
   if(voice)u.voice=voice;
