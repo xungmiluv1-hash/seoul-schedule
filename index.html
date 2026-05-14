@@ -509,6 +509,29 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink)
   .help-fab,.help-overlay,.map-form-overlay{display:none !important;}
 }
 
+/* ══ v49: Dashboard Summary ══ */
+.dash-wrap{background:linear-gradient(135deg,#1e2d6e 0%,#2d4498 100%);border-radius:16px;padding:16px 20px;margin-bottom:22px;color:#fff;}
+.dash-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+.dash-title{font-size:11px;font-weight:800;letter-spacing:2px;text-transform:uppercase;font-family:'DM Mono',monospace;color:rgba(255,255,255,.7);}
+.dash-date{font-size:12px;font-weight:700;color:#e0e7ff;margin-left:auto;font-family:'DM Mono',monospace;}
+.dash-stats{display:flex;gap:8px;flex-wrap:wrap;}
+.dash-stat{background:rgba(255,255,255,.12);border-radius:10px;padding:10px 14px;flex:1;min-width:75px;}
+.dash-stat .ds-num{font-size:22px;font-weight:900;color:#fff;line-height:1;}
+.dash-stat .ds-lbl{font-size:10px;color:rgba(255,255,255,.65);margin-top:3px;font-family:'DM Mono',monospace;letter-spacing:.5px;}
+.dash-stat.warn .ds-num{color:#fbbf24;}
+.dash-stat.good .ds-num{color:#6ee7b7;}
+.dash-bottom{margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.15);display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.dash-chip{border-radius:8px;padding:4px 10px;font-size:11.5px;font-weight:700;}
+.dash-chip.leave{background:rgba(251,191,36,.2);color:#fde68a;}
+.dash-chip.extra{background:rgba(110,231,183,.2);color:#6ee7b7;}
+.dash-chip.none{color:rgba(255,255,255,.4);font-size:11px;}
+.dash-rt{display:flex;align-items:center;gap:5px;margin-left:auto;font-size:10.5px;color:rgba(255,255,255,.5);font-family:'DM Mono',monospace;}
+.dash-rt-dot{width:7px;height:7px;border-radius:50%;background:#6ee7b7;animation:rtpulse 2s ease-in-out infinite;}
+.dash-rt-dot.off{background:#475569;animation:none;}
+@keyframes rtpulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+@media(max-width:600px){.dash-stat{min-width:60px;padding:8px 10px;}.dash-stat .ds-num{font-size:18px;}}
+@media print{.dash-wrap{display:none;}}
+
 /* ══ v44: 출근예외 (Attendance Exceptions) ══ */
 .excpt-section{margin-top:22px;padding-top:18px;border-top:2px solid var(--border);}
 .excpt-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
@@ -908,6 +931,16 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink)
 <!-- CALENDAR -->
 <div class="tab-page active" id="page-cal">
   <div class="page">
+    <!-- v49: Dashboard summary -->
+    <div class="dash-wrap" id="dashWrap">
+      <div class="dash-row">
+        <span class="dash-title">📊 오늘 현황</span>
+        <span class="dash-date" id="dashDate"></span>
+        <span class="dash-rt"><span class="dash-rt-dot off" id="dashRtDot"></span><span id="dashRtLabel">실시간 연결 중...</span></span>
+      </div>
+      <div class="dash-stats" id="dashStats"></div>
+      <div class="dash-bottom" id="dashBottom"></div>
+    </div>
     <div class="cal-header">
       <button class="cal-nav" onclick="changeMonth(-1)">◀</button>
       <div class="cal-title" id="calTitle"></div>
@@ -1366,8 +1399,11 @@ window.onload=async()=>{
   loadPermanentLocks();
   renderPinnedNotes();
   renderExcptList();
+  renderDashboard();
   updateCloudStatus();
   updateHeaderStats();
+  // v49: start realtime after cloud is ready
+  setTimeout(initRealtimeIfReady, 1200);
   // v20: 헤더에는 '오늘' 고정 표시
   const todayD=new Date();
   const todayDow=todayD.getDay(),todayMapped=todayDow===0?6:todayDow-1;
@@ -1409,7 +1445,7 @@ function toKoreanTime(t){
   const displayH=h>12?h-12:h;
   return mn?`${displayH}시${mn}분`:`${displayH}시`;
 }
-const saveLD=(action='')=>{try{localStorage.setItem('seoulLeave_v4',JSON.stringify(leaveData));}catch(e){};recordChange(action);scheduleCloudSave();if(typeof updateHeaderStats==='function')updateHeaderStats();};
+const saveLD=(action='')=>{try{localStorage.setItem('seoulLeave_v4',JSON.stringify(leaveData));}catch(e){};recordChange(action);scheduleCloudSave();if(typeof updateHeaderStats==='function')updateHeaderStats();if(typeof renderDashboard==='function')renderDashboard();};
 // v44: Staff save — immediate cloud push (no debounce) to prevent overwrite on page reload
 // v46: Staff version counter — increments each local save, compared with cloud version to prevent overwrites
 let _staffVer=parseInt(localStorage.getItem('seoulStaffVer_v1')||'0');
@@ -1665,6 +1701,8 @@ async function pullCloudState({silent=false}={}){
       updateCloudStatus(`클라우드 연결됨 · 마지막 불러오기 ${new Date().toLocaleTimeString('ko-KR')}`,false,'ready');
       if(typeof showToast==='function'&&!silent)showToast('클라우드에서 데이터를 불러왔습니다','info',1800);
       if(typeof updateHeaderStats==='function')updateHeaderStats();
+      if(typeof renderDashboard==='function')renderDashboard();
+      initRealtimeIfReady();
     }else{
       await pushCloudState({silent:true});
       updateCloudStatus('클라우드에 초기 데이터를 생성했습니다.',false,'saved');
@@ -4597,6 +4635,98 @@ function getExcptForDate(dateKey){
     if(matches){if(e.type==='absent')absent.push(e.name);else extra.push(e.name);}
   });
   return{absent,extra};
+}
+
+// ══════════ v49: DASHBOARD SUMMARY + REALTIME ══════════
+function renderDashboard(){
+  const today=formatDateKey(new Date());
+  const d=new Date();
+  const days=['일','월','화','수','목','금','토'];
+  const dateEl=document.getElementById('dashDate');
+  if(dateEl)dateEl.textContent=`${d.getMonth()+1}월 ${d.getDate()}일 (${days[d.getDay()]})`;
+
+  const todayLeaves=(leaveData[today]||[]);
+  const totalStaff=STAFF.length;
+  const avail=totalStaff-todayLeaves.length;
+  const {extra:extraToday}=getExcptForDate(today);
+
+  const statsEl=document.getElementById('dashStats');
+  if(statsEl)statsEl.innerHTML=`
+    <div class="dash-stat ${todayLeaves.length>0?'warn':'good'}">
+      <div class="ds-num">${todayLeaves.length}</div>
+      <div class="ds-lbl">오늘 휴무</div>
+    </div>
+    <div class="dash-stat good">
+      <div class="ds-num">${avail+extraToday.length}</div>
+      <div class="ds-lbl">출근 가능</div>
+    </div>
+    <div class="dash-stat">
+      <div class="ds-num">${totalStaff}</div>
+      <div class="ds-lbl">총 직원</div>
+    </div>
+    <div class="dash-stat ${extraToday.length>0?'good':''}">
+      <div class="ds-num">${extraToday.length}</div>
+      <div class="ds-lbl">추가 출근</div>
+    </div>`;
+
+  const bottomEl=document.getElementById('dashBottom');
+  if(bottomEl){
+    let html='';
+    if(todayLeaves.length){
+      html+=todayLeaves.map(n=>`<span class="dash-chip leave">🏖️ ${n}</span>`).join('');
+    }
+    if(extraToday.length){
+      html+=extraToday.map(n=>`<span class="dash-chip extra">🟢 ${n}</span>`).join('');
+    }
+    if(!todayLeaves.length&&!extraToday.length){
+      html='<span class="dash-chip none">특이사항 없음</span>';
+    }
+    bottomEl.innerHTML=html;
+  }
+}
+
+// v49: Supabase Realtime — listen for changes by other devices
+let _realtimeChannel=null;
+let _supabaseClient=null;
+function initRealtimeIfReady(){
+  if(!cloudReady||_realtimeChannel)return;
+  // Load Supabase JS client if not already loaded
+  if(!window.supabase){
+    const script=document.createElement('script');
+    script.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js';
+    script.onload=()=>_setupRealtimeChannel();
+    document.head.appendChild(script);
+  }else{
+    _setupRealtimeChannel();
+  }
+}
+function _setupRealtimeChannel(){
+  try{
+    if(!window.supabase?.createClient)return;
+    _supabaseClient=window.supabase.createClient(cloudConfig.url,cloudConfig.key);
+    _realtimeChannel=_supabaseClient.channel('db-changes')
+      .on('postgres_changes',{event:'UPDATE',schema:'public',table:'seoul_schedule_state',filter:'id=eq.global'},payload=>{
+        // Another device updated — pull latest
+        const lastPush=Date.now()-(_lastStaffSaveTs||0);
+        if(lastPush>3000){ // ignore our own push (within 3s)
+          pullCloudState({silent:true}).then(()=>{
+            if(typeof showToast==='function')showToast('📱 다른 기기에서 데이터가 변경되었습니다','info',3000);
+            renderDashboard();
+          });
+        }
+      })
+      .subscribe(status=>{
+        const dot=document.getElementById('dashRtDot');
+        const lbl=document.getElementById('dashRtLabel');
+        if(status==='SUBSCRIBED'){
+          if(dot)dot.classList.remove('off');
+          if(lbl)lbl.textContent='실시간 연결됨';
+        }else{
+          if(dot)dot.classList.add('off');
+          if(lbl)lbl.textContent='실시간 연결 대기';
+        }
+      });
+  }catch(e){console.warn('Realtime setup failed:',e);}
 }
 
 // ══════════ v23: PINNED NOTES (📌 메모 - persistent until manually deleted) ══════════
