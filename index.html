@@ -4841,50 +4841,7 @@ function printMeetings(){
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
 <style>body{margin:0}@media print{body{margin:0}}</style>
 </head><body>${blocksHtml}
-<!-- BUNNY PAGE (v61 restored) -->
-<div class="tab-page" id="page-bunny">
-  <div class="page">
-    <div class="bunny-stage">
-      <div class="bunny-wrap">
-        <div id="bunnyFig" class="bunny-figure idle mood-happy" role="button" tabindex="0" onclick="petBunny()"></div>
-      </div>
-      <div class="bunny-name">🐰 귀요미</div>
-      <div class="speech-bubble" id="bSpeech">안녕하세요! 저는 귀요미예요 🐰\n뭐든지 물어보세요~</div>
-    </div>
-    <div class="bunny-stats">
-      <div class="stat-row"><span class="stat-lbl">🥕 배고픔</span><div class="stat-bar"><div class="stat-fill hunger" id="bStatH" style="width:80%"></div></div><span class="stat-val" id="bValH">80%</span></div>
-      <div class="stat-row"><span class="stat-lbl">🛁 청결도</span><div class="stat-bar"><div class="stat-fill clean" id="bStatC" style="width:80%"></div></div><span class="stat-val" id="bValC">80%</span></div>
-      <div class="stat-row"><span class="stat-lbl">⚡ 에너지</span><div class="stat-bar"><div class="stat-fill energy" id="bStatE" style="width:80%"></div></div><span class="stat-val" id="bValE">80%</span></div>
-    </div>
-    <div class="bunny-actions">
-      <button class="bunny-btn feed" id="bFeedBtn" onclick="feedBunny()">🥕<span>당근 주기</span><span class="bsub">무제한 🥕</span></button>
-      <button class="bunny-btn bath" id="bBathBtn" onclick="batheBunny()">🛁<span>목욕시키기</span><span class="bsub">무제한 🛁</span></button>
-      <button class="bunny-btn slp" id="bSleepBtn" onclick="sleepBunny()">😴<span>재우기</span><span class="bsub">에너지 +50</span></button>
-    </div>
-    <div class="bunny-chat-wrap">
-      <div class="bchat-title">💬 귀요미에게 물어보기</div>
-      <div class="bchat-msgs" id="bChatMsgs"></div>
-      <div class="qchips">
-        <button class="qchip" onclick="quickAsk(this)">🌟 처음 사용법</button>
-        <button class="qchip" onclick="quickAsk(this)">📋 스케줄 입력</button>
-        <button class="qchip" onclick="quickAsk(this)">🌏 언어 코드</button>
-        <button class="qchip" onclick="quickAsk(this)">📲 카톡 보내기</button>
-        <button class="qchip" onclick="quickAsk(this)">📅 휴무 등록</button>
-        <button class="qchip" onclick="quickAsk(this)">🔒 고정 배정</button>
-        <button class="qchip" onclick="quickAsk(this)">🏥 병원 목록</button>
-        <button class="qchip" onclick="quickAsk(this)">🚶 이동 시간</button>
-        <button class="qchip" onclick="quickAsk(this)">☁️ 클라우드</button>
-        <button class="qchip" onclick="quickAsk(this)">👥 직원 명단</button>
-        <button class="qchip" onclick="quickAsk(this)">💾 백업</button>
-        <button class="qchip" onclick="quickAsk(this)">🆘 문제 해결</button>
-      </div>
-      <div class="bchat-input-row">
-        <input class="bchat-input" id="bChatInput" placeholder="질문을 입력하세요..." onkeydown="if(event.key==='Enter')askBunny()">
-        <button class="bchat-send" onclick="askBunny()">보내기</button>
-      </div>
-    </div>
-  </div>
-</div>
+
 </body></html>`;
   const w=window.open('','_blank','noopener');
   if(!w){alert('팝업이 차단되었습니다. 브라우저 팝업을 허용해주세요.');return;}
@@ -6105,6 +6062,51 @@ function helpQuickAsk(btn){
     <div class="help-input-row">
       <input class="help-input" id="helpInput" placeholder="질문을 입력하세요..." onkeydown="if(event.key==='Enter')askHelp()">
       <button class="help-send-btn" onclick="askHelp()">보내기</button>
+    </div>
+  </div>
+</div>
+
+<!-- BUNNY PAGE (v61 restored) -->
+<div class="tab-page" id="page-bunny">
+  <div class="page">
+    <div class="bunny-stage">
+      <div class="bunny-wrap">
+        <div id="bunnyFig" class="bunny-figure idle mood-happy" role="button" tabindex="0" onclick="petBunny()"></div>
+      </div>
+      <div class="bunny-name">🐰 귀요미</div>
+      <div class="speech-bubble" id="bSpeech">안녕하세요! 저는 귀요미예요 🐰\n뭐든지 물어보세요~</div>
+    </div>
+    <div class="bunny-stats">
+      <div class="stat-row"><span class="stat-lbl">🥕 배고픔</span><div class="stat-bar"><div class="stat-fill hunger" id="bStatH" style="width:80%"></div></div><span class="stat-val" id="bValH">80%</span></div>
+      <div class="stat-row"><span class="stat-lbl">🛁 청결도</span><div class="stat-bar"><div class="stat-fill clean" id="bStatC" style="width:80%"></div></div><span class="stat-val" id="bValC">80%</span></div>
+      <div class="stat-row"><span class="stat-lbl">⚡ 에너지</span><div class="stat-bar"><div class="stat-fill energy" id="bStatE" style="width:80%"></div></div><span class="stat-val" id="bValE">80%</span></div>
+    </div>
+    <div class="bunny-actions">
+      <button class="bunny-btn feed" id="bFeedBtn" onclick="feedBunny()">🥕<span>당근 주기</span><span class="bsub">무제한 🥕</span></button>
+      <button class="bunny-btn bath" id="bBathBtn" onclick="batheBunny()">🛁<span>목욕시키기</span><span class="bsub">무제한 🛁</span></button>
+      <button class="bunny-btn slp" id="bSleepBtn" onclick="sleepBunny()">😴<span>재우기</span><span class="bsub">에너지 +50</span></button>
+    </div>
+    <div class="bunny-chat-wrap">
+      <div class="bchat-title">💬 귀요미에게 물어보기</div>
+      <div class="bchat-msgs" id="bChatMsgs"></div>
+      <div class="qchips">
+        <button class="qchip" onclick="quickAsk(this)">🌟 처음 사용법</button>
+        <button class="qchip" onclick="quickAsk(this)">📋 스케줄 입력</button>
+        <button class="qchip" onclick="quickAsk(this)">🌏 언어 코드</button>
+        <button class="qchip" onclick="quickAsk(this)">📲 카톡 보내기</button>
+        <button class="qchip" onclick="quickAsk(this)">📅 휴무 등록</button>
+        <button class="qchip" onclick="quickAsk(this)">🔒 고정 배정</button>
+        <button class="qchip" onclick="quickAsk(this)">🏥 병원 목록</button>
+        <button class="qchip" onclick="quickAsk(this)">🚶 이동 시간</button>
+        <button class="qchip" onclick="quickAsk(this)">☁️ 클라우드</button>
+        <button class="qchip" onclick="quickAsk(this)">👥 직원 명단</button>
+        <button class="qchip" onclick="quickAsk(this)">💾 백업</button>
+        <button class="qchip" onclick="quickAsk(this)">🆘 문제 해결</button>
+      </div>
+      <div class="bchat-input-row">
+        <input class="bchat-input" id="bChatInput" placeholder="질문을 입력하세요..." onkeydown="if(event.key==='Enter')askBunny()">
+        <button class="bchat-send" onclick="askBunny()">보내기</button>
+      </div>
     </div>
   </div>
 </div>
