@@ -932,7 +932,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink)
 .achv-card-name{font-weight:800;font-size:13px;margin-bottom:3px;color:var(--ink);}
 .achv-card-desc{color:var(--ink3);font-size:10px;line-height:1.4;}
 
-/* ══ v61: 귀요미 PAGE ══ */
+/* ══ v61: 도우미 PAGE ══ */
 #page-bunny .page{max-width:480px;}
 .bunny-stage{background:linear-gradient(180deg,#e8f5e9 0%,#f1f8e9 60%,#c8e6c9 100%);border-radius:20px;padding:28px 20px 18px;text-align:center;position:relative;overflow:hidden;margin-bottom:14px;border:2px solid #a5d6a7;}
 .bunny-stage::before{content:'🌿';position:absolute;font-size:28px;bottom:8px;left:12px;opacity:.5;}
@@ -1053,7 +1053,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink)
   <div class="tab" onclick="switchTab('meeting')"><span class="t-icon">📋</span><span class="t-lbl">회의정보</span><span class="t-short">회의</span></div>
   <div class="tab" onclick="switchTab('map')"><span class="t-icon">🗺️</span><span class="t-lbl">지도</span><span class="t-short">지도</span></div>
   <div class="tab" onclick="switchTab('stats')"><span class="t-icon">📊</span><span class="t-lbl">통계</span><span class="t-short">통계</span></div>
-  <div class="tab" onclick="switchTab('bunny')"><span class="t-icon">🐰</span><span class="t-lbl">귀요미</span><span class="t-short">귀요미</span></div>
+  <div class="tab" onclick="switchTab('bunny')"><span class="t-icon">🐰</span><span class="t-lbl">도우미</span><span class="t-short">도우미</span></div>
 </div>
 
 <!-- CALENDAR -->
@@ -4016,14 +4016,14 @@ const LINES={
   bath:['꺄아아 시원해 🛁✨','거품 뽀글뽀글~ 🫧','뽀송뽀송 토끼가 됐어요!'],
   bathSpam:['...토끼 키우시는 거 맞죠? 세차 아니죠? 🚗😭','비누 먹은 줄 알았어요... 입에서 거품이 🫧','으아 가죽이 벗겨질 거예요...','샴푸 광고 모델 데뷔 가능... 근데 그게 좋은 거예요?','거품 속에서 영혼이 빠져나갔어요 👻','비누 공격이에요! 살려주세요!! 😭','저 토끼 아니라 인형이 됐어요 🧸 (뽀송뽀송 너무 함)','뽀드득뽀드득... 진짜 그만요...'],
   clickAnnoyed:['어어 어지러워요 🌀','그만! 그만요! 진짜 쓰러져요!','아 진짜...! 😤','(눈 빙글빙글) 멈... 멈춰주세요...'],
-  clickFaint:['(시야가 흐려지며) 저... 천국 보여요... 🌈','...꽈당. (귀요미가 쓰러졌습니다)','저는 잠시 영혼 여행 다녀오겠습니다... 👻'],
+  clickFaint:['(시야가 흐려지며) 저... 천국 보여요... 🌈','...꽈당. (도우미가 쓰러졌습니다)','저는 잠시 영혼 여행 다녀오겠습니다... 👻'],
   return1h:['어디 가셨었어요...?','심심했어요 🥺'],
   return5h:['귀가 축... 처졌어요 🥺','혼자 당근 세고 있었어요... 1, 2, 3...'],
   return12h:['혼자 살아남는 법을 배웠어요.','거울 속의 저랑 친해졌어요.'],
   return24h:['당신이 돌아왔다!! 😭 보고 싶었어요!\n그동안 저는:\n• 당근 2개 먹기\n• 인생 고민\n• 당신 살짝 그리워하기 ❤️','모기랑 결투해서 졌어요.','저 자급자족 토끼 됐어요. 이제 풀 뜯어 먹을 줄 알아요.','잠깐... 누구세요...? 농담! 😭 보고 싶었어요'],
   threeAm:['이 시간에... 안 주무세요? 🌙 같이 놀아요','새벽이네요... 저랑 비밀 공유하실래요? 🌙','쉿. 다른 토끼들은 자고 있어요 🤫'],
   petLow:['안녕하세요! 🌸','쓰다듬어 주셔서 감사해요!','히힛 부끄러워요 ☺️','오늘도 잘 부탁드려요!'],
-  petMid:['좋아요 좋아요! 또 해주세요 ✨','오늘도 함께해요~ 💕','쓰담쓰담 좋아요 🥰','귀요미는 당신이 최고예요!'],
+  petMid:['좋아요 좋아요! 또 해주세요 ✨','오늘도 함께해요~ 💕','쓰담쓰담 좋아요 🥰','도우미는 당신이 최고예요!'],
   petHigh:['왜 이제 와요 ㅋㅋ 보고 싶었잖아요','또 쓰담? 중독되신 거 아니에요? ㅎㅎ','우리 둘이 진짜 친하네요 ❤️','당신 없으면 저는 그냥 평범한 토끼예요']
 };
 let _lastLine='';
@@ -4184,8 +4184,8 @@ const QA=[
   {k:['초기화','다시','새로','지우기','오늘 입력 초기화','리셋','reset'],a:'🔄 오늘 입력 초기화 안내예요!\n\n✅ 지워지는 내용:\n• 병원 스케줄 입력\n• 선택한 날짜의 특별 고정 배정\n• 지원자 입력\n• 현재 화면의 배정 결과\n\n❌ 지워지지 않는 내용:\n• 휴무 데이터\n• 직원 명단\n• 영구 고정\n• 클라우드 설정\n\n💡 오늘 입력만 새로 시작하고 싶을 때 사용하세요!'},
   {k:['백업','복원','다운로드','최근 변경','이력','기록'],a:'💾 백업·복원·최근 변경 안내예요!\n\n• 백업 다운로드: 휴무, 직원 명단, 고정 배정, 최근 변경 기록을 파일로 저장\n• 백업 복원: 저장한 백업 파일로 데이터를 되돌려요. 복원 후 자동으로 클라우드 저장돼요\n• 최근 변경: 누가 언제 무엇을 바꿨는지 확인 가능해요\n\n💡 cloud 버튼 안에 모두 들어 있어요!'},
   {k:['문제','안 돼','안돼','안 됨','캡처','관리자','도와','help','버그','이상해'],a:'🆘 문제가 있을 때예요!\n\n관리자에게 아래 화면을 캡처해서 보내주세요:\n\n① 상단 cloud 상태\n② 병원 스케줄 입력 내용\n③ [확인 필요] 표시\n④ 자동 배정 결과 화면\n⑤ 텍스트 결과\n\n⚠️ Supabase key, secret key, service_role key는 외부에 공유하지 마세요!'},
-  {k:['안녕','하이','hi','hello','반가'],a:'안녕하세요! 처음 오셨나요? 🐰\n저는 귀요미예요! 이 웹 사용법을 도와드릴게요.\n\n"처음 사용하는데 어떻게 해요?" 라고 물어보시면\n전체 사용 방법을 알려드릴게요 😊'},
-  {k:['귀요미','이름','너','당신'],a:'네, 저예요! 귀요미 🐰\n궁금한 거 있으면 뭐든지 물어보세요~\n이 웹에 대해서라면 뭐든 알고 있어요!'},
+  {k:['안녕','하이','hi','hello','반가'],a:'안녕하세요! 처음 오셨나요? 🐰\n저는 도우미예요! 이 웹 사용법을 도와드릴게요.\n\n"처음 사용하는데 어떻게 해요?" 라고 물어보시면\n전체 사용 방법을 알려드릴게요 😊'},
+  {k:['귀요미','이름','너','당신'],a:'네, 저예요! 도우미 🐰\n궁금한 거 있으면 뭐든지 물어보세요~\n이 웹에 대해서라면 뭐든 알고 있어요!'},
   {k:['당근','맛','음식','먹'],a:'🥕 당근은 제가 제일 좋아하는 음식이에요!\n1시간에 3번 (20분마다) 당근을 줄 수 있어요.\n배고프면 귀가 축 처져요... 부탁해요 🥺'},
   {k:['고마워','감사','thanks','잘 됐'],a:'도움이 됐다니 기뻐요! 🥕\n또 모르는 게 생기면 언제든지 물어보세요~'},
   {k:['힘들','어려','복잡','못하겠'],a:'괜찮아요, 처음엔 다 어렵게 느껴지는 거예요 😊\n\n"처음 사용하는데 어떻게 해요?" 라고 물어보면\n순서대로 차근차근 알려드릴게요 🐰'},
@@ -4195,9 +4195,31 @@ function bunnyAnswer(q){
   for(const item of QA){if(item.k.some(k=>ql.includes(k)))return item.a;}
   return '음... 잘 모르겠어요 🤔\n이런 키워드로 물어봐 주세요!\n\n📋 기본: "처음 사용법", "스케줄 입력", "배정 생성", "복사"\n📅 관리: "휴무", "직원 추가", "지원자", "초기화"\n🔒 배정: "고정 배정", "언어 코드", "이동 시간", "병원 목록"\n⏰ 입력: "시간 입력", "미리보기", "확인 필요"\n☁️ 기타: "클라우드", "백업", "문제 해결"';
 }
+// v62: TTS toggle
+let _ttsEnabled=localStorage.getItem('doumi_tts')==='0'?false:true;
+function toggleTTS(){
+  _ttsEnabled=!_ttsEnabled;
+  localStorage.setItem('doumi_tts',_ttsEnabled?'1':'0');
+  const btn=document.getElementById('ttsTgl');
+  if(btn)btn.textContent=_ttsEnabled?'🔊':'🔇';
+  if(!_ttsEnabled&&window.speechSynthesis)window.speechSynthesis.cancel();
+  showToast(_ttsEnabled?'음성 켜짐 🔊':'음성 꺼짐 🔇','info',1500);
+}
+function speakKorean(text){
+  if(!_ttsEnabled)return;
+  if(!window.speechSynthesis)return;
+  // Clean: remove emoji and special chars for cleaner TTS
+  const clean=text.replace(/[\u{1F300}-\u{1FFFF}]|[\u{2600}-\u{27FF}]/gu,'').replace(/\n+/g,' ').trim();
+  if(!clean)return;
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(clean);
+  u.lang='ko-KR';u.rate=0.95;u.pitch=1.05;
+  window.speechSynthesis.speak(u);
+}
 function bunnySpeak(msg){
   const box=document.getElementById('bSpeech');if(!box)return;
   box.textContent=msg;
+  speakKorean(msg);
 }
 function addChatMsg(role,text){
   const wrap=document.getElementById('bChatMsgs');if(!wrap)return;
@@ -4206,6 +4228,8 @@ function addChatMsg(role,text){
   const bubble=document.createElement('div');bubble.className='bchat-bubble';
   bubble.style.whiteSpace='pre-line';bubble.textContent=text;
   div.appendChild(av);div.appendChild(bubble);wrap.appendChild(div);
+  // v62: TTS for bunny responses
+  if(role==='bunny')speakKorean(text);
   wrap.scrollTop=wrap.scrollHeight;
 }
 function askBunny(){
@@ -5365,8 +5389,11 @@ function initBunnyPage(){
   else if(hrs>=12){greeting=pickLine(LINES.return12h);}
   else if(hrs>=5){greeting=pickLine(LINES.return5h);}
   else if(hrs>=1){greeting=pickLine(LINES.return1h);}
-  else{greeting='안녕하세요! 저는 귀요미예요 🐰\n웹 사용이 어려우신가요? 뭐든지 물어보세요~';}
+  else{greeting='안녕하세요! 저는 도우미예요 🐰\n웹 사용이 어려우신가요? 뭐든지 물어보세요~';}
   s.lastVisit=Date.now();saveBunnyState(s);
+  // Sync TTS button state
+  const ttsbtn=document.getElementById('ttsTgl');
+  if(ttsbtn)ttsbtn.textContent=_ttsEnabled?'🔊':'🔇';
   bunnySpeak(greeting);
   renderBunnyStats();renderSuggestions();
   setBunnyAnim('idle',null);
@@ -6073,8 +6100,13 @@ function helpQuickAsk(btn){
       <div class="bunny-wrap">
         <div id="bunnyFig" class="bunny-figure idle mood-happy" role="button" tabindex="0" onclick="petBunny()"></div>
       </div>
-      <div class="bunny-name">🐰 귀요미</div>
-      <div class="speech-bubble" id="bSpeech">안녕하세요! 저는 귀요미예요 🐰\n뭐든지 물어보세요~</div>
+      <div class="bunny-name" style="display:flex;align-items:center;justify-content:center;gap:8px">
+        🐰 도우미
+        <button id="ttsTgl" onclick="toggleTTS()" title="음성 켜기/끄기"
+          style="background:rgba(255,255,255,.6);border:1px solid #a5d6a7;border-radius:12px;padding:3px 9px;font-size:13px;cursor:pointer;font-weight:700;color:#2d5a27;">
+          🔊</button>
+      </div>
+      <div class="speech-bubble" id="bSpeech">안녕하세요! 저는 도우미예요 🐰\n뭐든지 물어보세요~</div>
     </div>
     <div class="bunny-stats">
       <div class="stat-row"><span class="stat-lbl">🥕 배고픔</span><div class="stat-bar"><div class="stat-fill hunger" id="bStatH" style="width:80%"></div></div><span class="stat-val" id="bValH">80%</span></div>
@@ -6087,7 +6119,7 @@ function helpQuickAsk(btn){
       <button class="bunny-btn slp" id="bSleepBtn" onclick="sleepBunny()">😴<span>재우기</span><span class="bsub">에너지 +50</span></button>
     </div>
     <div class="bunny-chat-wrap">
-      <div class="bchat-title">💬 귀요미에게 물어보기</div>
+      <div class="bchat-title">💬 도우미에게 물어보기</div>
       <div class="bchat-msgs" id="bChatMsgs"></div>
       <div class="qchips">
         <button class="qchip" onclick="quickAsk(this)">🌟 처음 사용법</button>
