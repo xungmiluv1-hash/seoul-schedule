@@ -4860,7 +4860,13 @@ const DAYS_EXCPT=['월','화','수','금','토','일'];
 const DAYS_EXCPT_IDX=[0,1,2,4,5,6]; // maps label index to day number (0=Mon)
 let _excptEditing=null;
 function loadExcpt(){try{return JSON.parse(localStorage.getItem(EXCPT_KEY)||'[]');}catch{return[];}}
-function saveExcpt(arr){localStorage.setItem(EXCPT_KEY,JSON.stringify(arr));if(typeof scheduleCloudSave==='function')scheduleCloudSave();}
+function saveExcpt(arr){
+  localStorage.setItem(EXCPT_KEY,JSON.stringify(arr));
+  if(typeof scheduleCloudSave==='function')scheduleCloudSave();
+  // v60 fix: dashboard reflects 추가출근 immediately after save
+  if(typeof renderDashboard==='function')renderDashboard();
+  if(typeof updateHeaderStats==='function')updateHeaderStats();
+}
 
 function renderExcptList(){
   const el=document.getElementById('excptList');if(!el)return;
