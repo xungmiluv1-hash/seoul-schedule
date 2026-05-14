@@ -4307,20 +4307,35 @@ function toggleTTS(){
   if(!_ttsEnabled&&window.speechSynthesis)window.speechSynthesis.cancel();
   showToast(_ttsEnabled?'음성 켜짐 🔊':'음성 꺼짐 🔇','info',1500);
 }
+// v64: Try to pick a cute female Korean voice
+function getKoreanVoice(){
+  const voices=window.speechSynthesis?.getVoices()||[];
+  // Prefer known cute/female Korean voices (Yuna, Seojun, 유나, 세라...)
+  const prefer=['유나','yuna','seojun','서준','세라','Sara','Jiyeon'];
+  const femaleKr=voices.find(v=>(v.lang==='ko-KR'||v.lang==='ko')&&prefer.some(n=>v.name.toLowerCase().includes(n.toLowerCase())));
+  const anyKr=voices.find(v=>v.lang==='ko-KR'||v.lang==='ko'||v.lang.startsWith('ko'));
+  return femaleKr||anyKr||null;
+}
 function speakKorean(text){
   if(!_ttsEnabled)return;
   if(!window.speechSynthesis)return;
-  // Clean: remove emoji and special chars for cleaner TTS
   const clean=text.replace(/[\u{1F300}-\u{1FFFF}]|[\u{2600}-\u{27FF}]/gu,'').replace(/\n+/g,' ').trim();
   if(!clean)return;
   window.speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(clean);
-  u.lang='ko-KR';u.rate=0.95;u.pitch=1.05;
+  u.lang='ko-KR';
+  // v64: cuter voice settings — higher pitch, slightly brighter
+  u.pitch=1.35;   // higher = cuter (range 0-2, default 1)
+  u.rate=1.05;    // slightly faster = more lively
+  u.volume=0.9;
+  const voice=getKoreanVoice();
+  if(voice)u.voice=voice;
   window.speechSynthesis.speak(u);
 }
 function bunnySpeak(msg){
   const box=document.getElementById('bSpeech');if(!box)return;
   box.textContent=msg;
+  // v64: TTS only for game speech bubble, NOT Q&A chat
   speakKorean(msg);
 }
 function addChatMsg(role,text){
@@ -4330,8 +4345,7 @@ function addChatMsg(role,text){
   const bubble=document.createElement('div');bubble.className='bchat-bubble';
   bubble.style.whiteSpace='pre-line';bubble.textContent=text;
   div.appendChild(av);div.appendChild(bubble);wrap.appendChild(div);
-  // v62: TTS for bunny responses
-  if(role==='bunny')speakKorean(text);
+  // v64: NO TTS for Q&A chat (only game speech bubble speaks)
   wrap.scrollTop=wrap.scrollHeight;
 }
 function askBunny(){
