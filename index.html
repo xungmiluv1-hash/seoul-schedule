@@ -1520,10 +1520,7 @@ function closeAuthModal(runPending=false){
 }
 function normalizeStaffRules(){
   const defaultByName=new Map(STAFF_DEFAULT.map(s=>[s.name,s]));
-  const existingNames=new Set(STAFF.map(s=>s.name));
-  STAFF_DEFAULT.forEach(s=>{
-    if(!existingNames.has(s.name))STAFF.push(JSON.parse(JSON.stringify(s)));
-  });
+  // v53 fix: removed "add back missing defaults" — intentional deletions must stay deleted
   const byName=new Map();
   STAFF=STAFF.filter(s=>{
     if(!s?.name)return false;
