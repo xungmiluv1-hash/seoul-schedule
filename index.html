@@ -2640,11 +2640,24 @@ function doGenerate(){
 
   // Priority order
   const priorityOrder=['브라운','명동','다정한','안과','아트라인','오아로','닥터송','슈퍼맨','헤라','니어'];
+  // v56: Languages with very few speakers — these demands must be processed EARLY
+  // to prevent native speakers being "used up" at base hospitals for common languages
+  const RARE_LANGS=new Set(['U','KZ','KY','R','MG','MY','C','N','CH','YE']);
+  const isRareDemand=(d)=>RARE_LANGS.has(d.lang)||(d.mergedRU);
+  // Count available speakers per language to detect scarcity
+  const availLangCount={};
+  availPool.forEach(s=>(s.langs||[]).forEach(l=>{availLangCount[l]=(availLangCount[l]||0)+1;}));
+  const isScarce=(d)=>{const l=d.lang;return(availLangCount[l]||0)<=2;};
   const firstDemandTime=(d)=>d.times.length?toMin(d.times[0]):null;
   demand.sort((a,b)=>{
     // allDay demands processed FIRST to lock interpreter (no movement out)
     if(a.allDay&&!b.allDay)return -1;
     if(!a.allDay&&b.allDay)return 1;
+    // v56: Scarce/rare language demands at non-base hospitals processed before base hospital demands
+    const aRare=isRareDemand(a)&&isScarce(a)&&!['브라운','니어'].includes(a.hospId);
+    const bRare=isRareDemand(b)&&isScarce(b)&&!['브라운','니어'].includes(b.hospId);
+    if(aRare&&!bRare)return -1;
+    if(!aRare&&bRare)return 1;
     const nearHeraSatA=selectedDay===5&&a.hospId==='니어'&&a.lang==='I'&&b.hospId==='헤라'&&b.lang==='I'&&b.times.some(t=>toMin(t)>=toMin('14:00'))?-1:0;
     const nearHeraSatB=selectedDay===5&&b.hospId==='니어'&&b.lang==='I'&&a.hospId==='헤라'&&a.lang==='I'&&a.times.some(t=>toMin(t)>=toMin('14:00'))?-1:0;
     if(nearHeraSatA!==nearHeraSatB)return nearHeraSatA-nearHeraSatB;
@@ -2656,7 +2669,6 @@ function doGenerate(){
     const lb=todayLocks.some(l=>l.hospId===b.hospId)?-3:0;
     const heraA=a.hospId==='헤라'&&a.lang==='I'?-2:0;
     const heraB=b.hospId==='헤라'&&b.lang==='I'?-2:0;
-    // Near priority for I/N/R
     const nearA=a.hospId==='니어'&&['N','I','R'].includes(a.lang)?-1:0;
     const nearB=b.hospId==='니어'&&['N','I','R'].includes(b.lang)?-1:0;
     const pa=la||heraA||nearA||priorityOrder.indexOf(a.hospId);
@@ -2953,12 +2965,27 @@ function doGenerate(){
     if(sameLangCount>=MAX_STAFF_PER_LANG_PER_HOSP)return false;
     return true;
   };
+  // v56: Native language priority — a demand is "needsNative" if it's currently filled
+  // only by EN substitution (useEng=true) while this staff speaks the native lang.
+  const needsNativeUpgrade=(r,s)=>{
+    if(!r.useEng)return false;
+    // demand lang — if staff speaks it natively, they should take over from EN
+    const nativeLang=r.demand.mergedRU?'R':r.demand.lang;
+    if(!s.langs.includes(nativeLang))return false;
+    // Only upgrade if currently no native speaker assigned
+    const hasNative=r.assigned.some(a=>!a.isMoved&&a.langs.includes(nativeLang)&&!a.useEng);
+    return !hasNative;
+  };
   const supplemental=[];
   availPool.filter(s=>!assignedNames.has(s.name)).forEach(s=>{
-    const choices=results.filter(r=>!r.closedDay&&r.noStaff&&!supportCoversDemand(r.demand)&&extraCanGo(s,r));
+    // v56: also include demands filled by EN if this staff speaks native lang
+    const choices=results.filter(r=>!r.closedDay&&(r.noStaff||needsNativeUpgrade(r,s))&&!supportCoversDemand(r.demand)&&extraCanGo(s,r));
     if(!choices.length)return;
     choices.sort((a,b)=>{
+      // noStaff first, then needsNative upgrade, then by fill rate
       if(a.noStaff!==b.noStaff)return a.noStaff?-1:1;
+      const aNative=needsNativeUpgrade(a,s),bNative=needsNativeUpgrade(b,s);
+      if(aNative!==bNative)return aNative?-1:1;
       const fillA=activeAssignedCount(a)/Math.max(1,a.demand.needCount);
       const fillB=activeAssignedCount(b)/Math.max(1,b.demand.needCount);
       if(fillA!==fillB)return fillA-fillB;
