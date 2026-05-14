@@ -502,6 +502,50 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink)
   .help-fab,.help-overlay,.map-form-overlay{display:none !important;}
 }
 
+/* ══ v44: 출근예외 (Attendance Exceptions) ══ */
+.excpt-section{margin-top:22px;padding-top:18px;border-top:2px solid var(--border);}
+.excpt-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
+.excpt-title{font-size:12px;font-weight:700;letter-spacing:2px;color:var(--ink2);text-transform:uppercase;font-family:'DM Mono',monospace;}
+.excpt-add-btn{margin-left:auto;padding:7px 14px;background:linear-gradient(135deg,#dc2626,#b91c1c);border:none;border-radius:20px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;}
+.excpt-add-btn:hover{opacity:.88;}
+.excpt-list{display:flex;flex-direction:column;gap:7px;}
+.excpt-empty{font-size:12px;color:var(--ink3);text-align:center;padding:16px;border:1.5px dashed #e5e7eb;border-radius:10px;background:#fafbfc;}
+.excpt-card{border-radius:11px;padding:10px 14px;display:flex;align-items:flex-start;gap:10px;position:relative;}
+.excpt-card.absent{background:#fef2f2;border:1.5px solid #fca5a5;}
+.excpt-card.extra{background:#f0fdf4;border:1.5px solid #86efac;}
+.excpt-card .excpt-icon{font-size:18px;flex-shrink:0;line-height:1.4;}
+.excpt-card .excpt-body{flex:1;}
+.excpt-card .excpt-name{font-size:13px;font-weight:800;color:#0f172a;}
+.excpt-card .excpt-type{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px;}
+.excpt-card.absent .excpt-type{background:#fee2e2;color:#b91c1c;}
+.excpt-card.extra .excpt-type{background:#dcfce7;color:#15803d;}
+.excpt-card .excpt-sched{font-size:11.5px;color:#475569;margin-top:3px;font-family:'DM Mono',monospace;}
+.excpt-card .excpt-note{font-size:11.5px;color:#94a3b8;margin-top:2px;}
+.excpt-card .excpt-actions{position:absolute;top:8px;right:8px;display:flex;gap:4px;opacity:0;transition:opacity .12s;}
+.excpt-card:hover .excpt-actions{opacity:1;}
+.excpt-act{width:24px;height:24px;border:1px solid #e5e7eb;background:#fff;border-radius:6px;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#64748b;}
+.excpt-act:hover{background:#f1f5f9;}
+.excpt-act.del:hover{background:#fee2e2;color:#dc2626;border-color:#fecaca;}
+@media(max-width:600px){.excpt-card .excpt-actions{opacity:1;}}
+/* Excpt modal */
+.excpt-modal-ovl{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:1100;display:none;align-items:center;justify-content:center;padding:18px;}
+.excpt-modal-ovl.show{display:flex;}
+.excpt-modal{background:#fff;border-radius:16px;padding:22px;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 50px rgba(0,0,0,.3);}
+.excpt-modal h3{font-size:16px;font-weight:800;margin:0 0 16px;}
+.excpt-field{margin-bottom:12px;}
+.excpt-field label{display:block;font-size:11px;font-weight:700;color:#64748b;font-family:'DM Mono',monospace;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;}
+.excpt-field input,.excpt-field select,.excpt-field textarea{width:100%;padding:9px 12px;border:1px solid #e5e7eb;border-radius:9px;font-family:'Noto Sans KR',sans-serif;font-size:13px;outline:none;box-sizing:border-box;}
+.excpt-field input:focus,.excpt-field select:focus{border-color:var(--navy2);}
+.excpt-field .excpt-row{display:flex;gap:8px;}
+.excpt-field .excpt-row input,.excpt-field .excpt-row select{flex:1;}
+.excpt-days-grid{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+.excpt-day-btn{padding:5px 10px;border:1.5px solid #e5e7eb;background:#fff;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;color:#475569;}
+.excpt-day-btn.on{background:var(--navy);border-color:var(--navy);color:#fff;}
+.excpt-modal-btns{display:flex;gap:8px;margin-top:16px;}
+.excpt-modal-btns button{flex:1;padding:10px;border-radius:10px;font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:700;cursor:pointer;border:none;}
+.excpt-modal-btns .save{background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;}
+.excpt-modal-btns .cancel{background:#f1f5f9;color:#475569;}
+
 /* ══ v29 POLISH: Design tokens, Toast, Empty states, Header upgrade ══ */
 :root{
   --radius-sm:8px;--radius-md:12px;--radius-lg:16px;--radius-xl:20px;
@@ -866,6 +910,15 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink)
     <div class="cal-legend">
       <div class="leg-dot" style="background:#d8b4fe"></div>휴무 있음
       <div class="leg-dot" style="background:var(--pink);margin-left:10px"></div>오늘
+    </div>
+
+    <!-- 출근예외 (v44) -->
+    <div class="excpt-section">
+      <div class="excpt-hdr">
+        <span class="excpt-title">📋 출근 예외</span>
+        <button class="excpt-add-btn" onclick="openExcptModal()">+ 예외 추가</button>
+      </div>
+      <div class="excpt-list" id="excptList"></div>
     </div>
 
     <!-- PINNED NOTES (v23) -->
@@ -1299,6 +1352,7 @@ window.onload=async()=>{
   loadLocks();
   loadPermanentLocks();
   renderPinnedNotes();
+  renderExcptList();
   updateCloudStatus();
   updateHeaderStats();
   // v20: 헤더에는 '오늘' 고정 표시
@@ -1343,7 +1397,15 @@ function toKoreanTime(t){
   return mn?`${displayH}시${mn}분`:`${displayH}시`;
 }
 const saveLD=(action='')=>{try{localStorage.setItem('seoulLeave_v4',JSON.stringify(leaveData));}catch(e){};recordChange(action);scheduleCloudSave();if(typeof updateHeaderStats==='function')updateHeaderStats();};
-const saveStaff=(action='')=>{try{localStorage.setItem('seoulStaff_v1',JSON.stringify(STAFF));}catch(e){};recordChange(action);scheduleCloudSave();};
+// v44: Staff save — immediate cloud push (no debounce) to prevent overwrite on page reload
+let _lastStaffSaveTs=0;
+const saveStaff=(action='')=>{
+  _lastStaffSaveTs=Date.now();
+  try{localStorage.setItem('seoulStaff_v1',JSON.stringify(STAFF));localStorage.setItem('seoulStaffTs_v1',String(_lastStaffSaveTs));}catch(e){}
+  recordChange(action);
+  // Push immediately to avoid race: user edits → reloads → cloud overwrites local
+  if(cloudReady&&!cloudSaving){pushCloudState({silent:true});}else{scheduleCloudSave();}
+};
 const saveLocks=(action='')=>{try{localStorage.setItem('seoulLocksByDate_v1',JSON.stringify(locksByDate));}catch(e){};recordChange(action);scheduleCloudSave();};
 const savePermanentLocks=(action='')=>{try{localStorage.setItem('seoulPermanentLocks_v1',JSON.stringify(permanentLocks));}catch(e){};recordChange(action);scheduleCloudSave();};
 function loadStaff(){try{const s=localStorage.getItem('seoulStaff_v1');if(s){const a=JSON.parse(s);if(Array.isArray(a)&&a.length){STAFF=a;return;}}}catch(e){}}
@@ -1535,6 +1597,7 @@ function cloudPayload(){
       mapHosps:safeRead(MAP_HOSP_KEY)||[],
       pinnedNotes:safeRead(PIN_KEY)||[],
       dailyBookings:safeRead('seoulDailyBookings_v1')||{},
+      excptData:safeRead(EXCPT_KEY)||[],
       savedAt:new Date().toISOString(),
       version:26
     },
@@ -1543,14 +1606,18 @@ function cloudPayload(){
 }
 function applyCloudData(data){
   if(data?.leaveData&&typeof data.leaveData==='object')leaveData=data.leaveData;
-  if(Array.isArray(data?.staff))STAFF=data.staff;
+  // v44: Guard — don't overwrite staff if local edit is newer than cloud savedAt
+  const localStaffTs=parseInt(localStorage.getItem('seoulStaffTs_v1')||'0');
+  const cloudSavedAt=new Date(data?.savedAt||0).getTime();
+  const staffUpToDate=localStaffTs>cloudSavedAt;
+  if(Array.isArray(data?.staff)&&!staffUpToDate)STAFF=data.staff;
   if(data?.locksByDate&&typeof data.locksByDate==='object')locksByDate=data.locksByDate;
   if(Array.isArray(data?.permanentLocks))permanentLocks=data.permanentLocks;
   if(Array.isArray(data?.changeHistory))changeHistory=data.changeHistory.slice(0,30);
   suppressCloudSave=true;
   try{
     localStorage.setItem('seoulLeave_v4',JSON.stringify(leaveData));
-    localStorage.setItem('seoulStaff_v1',JSON.stringify(STAFF));
+    if(!staffUpToDate)localStorage.setItem('seoulStaff_v1',JSON.stringify(STAFF));
     localStorage.setItem('seoulLocksByDate_v1',JSON.stringify(locksByDate));
     localStorage.setItem('seoulPermanentLocks_v1',JSON.stringify(permanentLocks));
     localStorage.setItem('seoulChangeHistory_v1',JSON.stringify(changeHistory));
@@ -1559,6 +1626,7 @@ function applyCloudData(data){
     if(Array.isArray(data?.mapHosps))localStorage.setItem(MAP_HOSP_KEY,JSON.stringify(data.mapHosps));
     if(Array.isArray(data?.pinnedNotes))localStorage.setItem(PIN_KEY,JSON.stringify(data.pinnedNotes));
     if(data?.dailyBookings&&typeof data.dailyBookings==='object')localStorage.setItem('seoulDailyBookings_v1',JSON.stringify(data.dailyBookings));
+    if(Array.isArray(data?.excptData)){localStorage.setItem(EXCPT_KEY,JSON.stringify(data.excptData));}
     normalizeStaffRules();
   }finally{suppressCloudSave=false;}
   renderCalendar();renderStaffTable();loadSelectedLocksIntoEditor();renderPermanentLockEditor();updateLeaveBanner();renderChangeHistory();
@@ -2320,11 +2388,16 @@ function doGenerate(){
   const dk=getDateKey();
   const todayLeaves=dk?(leaveData[dk]||[]):[];
   const seed=getDaySeed();
+  // v44: merge 출근예외 — absent staff excluded, extra staff added
+  const {absent:excptAbsent,extra:excptExtra}=getExcptForDate(dk||'');
+  const allAbsent=[...new Set([...todayLeaves,...excptAbsent])];
 
   // Filter staff
   let availPool=STAFF.filter(s=>{
+    if(allAbsent.includes(s.name))return false;
+    // v44: 임시출근 — include if in excptExtra even if not their normal day
+    if(excptExtra.includes(s.name))return true;
     if(!Array.isArray(s.days)||!s.days.includes(selectedDay))return false;
-    if(todayLeaves.includes(s.name))return false;
     return true;
   });
   availPool=uniqueStaffByName(availPool);
@@ -4387,6 +4460,118 @@ tbody tr:last-child td{border-bottom:none}
 </body></html>`;
 }
 
+// ══════════ v44: 출근예외 (Attendance Exceptions) ══════════
+const EXCPT_KEY='seoulExceptions_v1';
+const DAYS_EXCPT=['월','화','수','금','토','일'];
+const DAYS_EXCPT_IDX=[0,1,2,4,5,6]; // maps label index to day number (0=Mon)
+let _excptEditing=null;
+function loadExcpt(){try{return JSON.parse(localStorage.getItem(EXCPT_KEY)||'[]');}catch{return[];}}
+function saveExcpt(arr){localStorage.setItem(EXCPT_KEY,JSON.stringify(arr));if(typeof scheduleCloudSave==='function')scheduleCloudSave();}
+
+function renderExcptList(){
+  const el=document.getElementById('excptList');if(!el)return;
+  const arr=loadExcpt();
+  if(!arr.length){el.innerHTML='<div class="excpt-empty">📋 예외 출근 기록이 없어요<br><span style="font-size:10.5px;color:#94a3b8">갑작스러운 결근이나 임시출근을 여기에 기록하세요</span></div>';return;}
+  el.innerHTML=arr.map((e,i)=>{
+    const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const isAbsent=e.type==='absent';
+    const icon=isAbsent?'🔴':'🟢';
+    const label=isAbsent?'결근':'임시출근';
+    const sched=formatExcptSched(e);
+    return `<div class="excpt-card ${isAbsent?'absent':'extra'}">
+      <span class="excpt-icon">${icon}</span>
+      <div class="excpt-body">
+        <span class="excpt-name">${esc(e.name)}</span><span class="excpt-type">${label}</span>
+        <div class="excpt-sched">${esc(sched)}</div>
+        ${e.note?`<div class="excpt-note">📝 ${esc(e.note)}</div>`:''}
+      </div>
+      <div class="excpt-actions">
+        <button class="excpt-act" onclick="openExcptModal(${i})" title="수정">✏️</button>
+        <button class="excpt-act del" onclick="deleteExcpt(${i})" title="삭제">×</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function formatExcptSched(e){
+  if(e.schedType==='date')return e.date||'날짜 미정';
+  if(e.schedType==='range')return `${e.dateFrom||'?'} ~ ${e.dateTo||'?'}`;
+  if(e.schedType==='weekday'){
+    const days=(e.weekdays||[]).map(d=>DAYS_EXCPT[DAYS_EXCPT_IDX.indexOf(d)]||'').filter(Boolean);
+    return `매주 ${days.join('/')}`;
+  }
+  return e.note?'':'메모 없음';
+}
+
+function openExcptModal(idx){
+  _excptEditing=idx!=null?idx:null;
+  const arr=loadExcpt();
+  const e=idx!=null?arr[idx]:null;
+  document.getElementById('excptModalTitle').textContent=e?'📋 출근 예외 수정':'📋 출근 예외 추가';
+  document.getElementById('excptName').value=e?.name||'';
+  document.getElementById('excptType').value=e?.type||'absent';
+  document.getElementById('excptSchedType').value=e?.schedType||'date';
+  document.getElementById('excptNote').value=e?.note||'';
+  // populate datalist
+  const dl=document.getElementById('excptNameList');
+  if(dl)dl.innerHTML=STAFF.map(s=>`<option value="${s.name.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}">`).join('');
+  renderExcptSchedInputs(e);
+  document.getElementById('excptModalOvl').classList.add('show');
+  setTimeout(()=>document.getElementById('excptName').focus(),50);
+}
+function closeExcptModal(){document.getElementById('excptModalOvl').classList.remove('show');_excptEditing=null;}
+function renderExcptSchedInputs(e){
+  const type=document.getElementById('excptSchedType').value;
+  const wrap=document.getElementById('excptSchedInputs');if(!wrap)return;
+  if(type==='date'){
+    wrap.innerHTML=`<div class="excpt-field"><label>날짜</label><input type="date" id="excptDate" value="${e?.date||''}"></div>`;
+  }else if(type==='range'){
+    wrap.innerHTML=`<div class="excpt-field"><label>기간</label><div class="excpt-row"><input type="date" id="excptDateFrom" value="${e?.dateFrom||''}"><input type="date" id="excptDateTo" value="${e?.dateTo||''}"></div></div>`;
+  }else if(type==='weekday'){
+    const selDays=e?.weekdays||[];
+    const btns=DAYS_EXCPT_IDX.map((d,i)=>`<button type="button" class="excpt-day-btn${selDays.includes(d)?' on':''}" onclick="this.classList.toggle('on')" data-d="${d}">${DAYS_EXCPT[i]}</button>`).join('');
+    wrap.innerHTML=`<div class="excpt-field"><label>반복 요일</label><div class="excpt-days-grid">${btns}</div></div>`;
+  }else{
+    wrap.innerHTML='';
+  }
+}
+function saveExcptEntry(){
+  const name=document.getElementById('excptName').value.trim();
+  if(!name){alert('직원 이름을 입력하세요.');return;}
+  const type=document.getElementById('excptType').value;
+  const schedType=document.getElementById('excptSchedType').value;
+  const note=document.getElementById('excptNote').value.trim();
+  const entry={id:'ex_'+Date.now(),name,type,schedType,note};
+  if(schedType==='date')entry.date=document.getElementById('excptDate')?.value||'';
+  else if(schedType==='range'){entry.dateFrom=document.getElementById('excptDateFrom')?.value||'';entry.dateTo=document.getElementById('excptDateTo')?.value||'';}
+  else if(schedType==='weekday'){entry.weekdays=[...document.querySelectorAll('#excptSchedInputs .excpt-day-btn.on')].map(b=>parseInt(b.dataset.d));}
+  const arr=loadExcpt();
+  if(_excptEditing!=null){arr[_excptEditing]=entry;}else{arr.push(entry);}
+  saveExcpt(arr);closeExcptModal();renderExcptList();
+  if(typeof showToast==='function')showToast(`${name} 예외 저장됨`,'success',1600);
+}
+function deleteExcpt(i){
+  if(!confirm('이 예외를 삭제하시겠습니까?'))return;
+  const arr=loadExcpt();arr.splice(i,1);saveExcpt(arr);renderExcptList();
+}
+
+// Check if staff is on exception today (for 배정 engine)
+function getExcptForDate(dateKey){
+  const arr=loadExcpt();if(!arr.length)return{absent:[],extra:[]};
+  const d=dateKey?new Date(dateKey):new Date();
+  const dayNum=d.getDay()===0?6:d.getDay()-1; // 0=Mon...6=Sun
+  const absent=[],extra=[];
+  arr.forEach(e=>{
+    let matches=false;
+    if(e.schedType==='date')matches=e.date===dateKey;
+    else if(e.schedType==='range'&&e.dateFrom&&e.dateTo)matches=dateKey>=e.dateFrom&&dateKey<=e.dateTo;
+    else if(e.schedType==='weekday')matches=(e.weekdays||[]).includes(dayNum);
+    else if(e.schedType==='flex')matches=false;
+    if(matches){if(e.type==='absent')absent.push(e.name);else extra.push(e.name);}
+  });
+  return{absent,extra};
+}
+
 // ══════════ v23: PINNED NOTES (📌 메모 - persistent until manually deleted) ══════════
 const PIN_KEY='seoulPinnedNotes_v1';
 function getPinnedNotes(){try{return JSON.parse(localStorage.getItem(PIN_KEY)||'[]');}catch{return[];}}
@@ -5068,6 +5253,43 @@ function helpQuickAsk(btn){
     <div class="map-form-actions">
       <button class="cancel" onclick="closeMapHospForm()">취소</button>
       <button class="save" onclick="saveMapHospForm()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 출근예외 modal (v44) -->
+<div class="excpt-modal-ovl" id="excptModalOvl">
+  <div class="excpt-modal">
+    <h3 id="excptModalTitle">📋 출근 예외 추가</h3>
+    <div class="excpt-field">
+      <label>직원 이름 *</label>
+      <input type="text" id="excptName" placeholder="이름 입력 또는 선택" list="excptNameList" autocomplete="off">
+      <datalist id="excptNameList"></datalist>
+    </div>
+    <div class="excpt-field">
+      <label>예외 종류 *</label>
+      <select id="excptType">
+        <option value="absent">결근 (그 날 나오지 않음)</option>
+        <option value="extra">임시출근 (원래 비번이지만 나옴)</option>
+      </select>
+    </div>
+    <div class="excpt-field">
+      <label>일정 종류</label>
+      <select id="excptSchedType" onchange="renderExcptSchedInputs()">
+        <option value="date">특정 날짜 1회</option>
+        <option value="range">날짜 범위</option>
+        <option value="weekday">요일 반복 (매주)</option>
+        <option value="flex">비고 메모만</option>
+      </select>
+    </div>
+    <div id="excptSchedInputs"></div>
+    <div class="excpt-field">
+      <label>메모 (선택)</label>
+      <input type="text" id="excptNote" placeholder="예: 병원 사정, 가족 행사...">
+    </div>
+    <div class="excpt-modal-btns">
+      <button class="cancel" onclick="closeExcptModal()">취소</button>
+      <button class="save" onclick="saveExcptEntry()">저장</button>
     </div>
   </div>
 </div>
