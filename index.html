@@ -407,12 +407,15 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink)
 }
 @media print{.format-bar{display:none !important;}}
 
-/* v32: Editable cells (replaces textarea — supports rich formatting) */
-.cell-editable{width:100%;min-height:42px;padding:11px 13px;font-family:'Noto Sans KR',sans-serif;font-size:13.5px;font-weight:500;line-height:1.65;outline:none;color:#020617;word-break:break-word;cursor:text;box-sizing:border-box;}
+/* v32+v43: Editable cells — no height limit, grows freely with content */
+.cell-editable{width:100%;min-height:48px;padding:11px 13px;font-family:'Noto Sans KR',sans-serif;font-size:13.5px;font-weight:500;line-height:1.65;outline:none;color:#020617;word-break:break-word;cursor:text;box-sizing:border-box;overflow:visible;white-space:pre-wrap;}
 .cell-editable:focus{background:#fffbeb;box-shadow:inset 0 0 0 2px #fbbf24;}
 .cell-editable.first-col{font-weight:800 !important;color:#0f172a !important;font-size:13.5px !important;letter-spacing:-.2px !important;}
 .cell-editable[contenteditable="false"]{cursor:default;}
 .cell-editable br:last-child{display:none;}
+/* footnote */
+.meeting-footnote{font-size:10.5px;color:#94a3b8;text-align:right;margin-bottom:10px;letter-spacing:.2px;font-family:'DM Mono',monospace;}
+@media print{.meeting-footnote{display:none;}}
 
 /* v31: Cell formatting toolbar (Bold + Align + Color) */
 .cell-toolbar{position:absolute;background:#0f172a;border-radius:10px;padding:5px;display:none;gap:2px;box-shadow:0 6px 20px rgba(0,0,0,.35);z-index:1100;align-items:center;}
@@ -1124,8 +1127,9 @@ const LANG_ALIAS={
   MA:'I',ML:'I',D:'I',Ma:'I',Ml:'I',ma:'I',ml:'I',d:'I',
   말레이시아:'I',말레이시아어:'I',말레이:'I',말레이어:'I',
   동티모르:'I',동티모르어:'I',
-  L:'T',Lao:'T',LAO:'T',lao:'T',
-  라오스:'T',라오스어:'T',라우스:'T',
+  L:'T',Lao:'T',LAO:'T',lao:'T', // L=라우스(라오스) → 태국어 통역사
+  라오스:'T',라오스어:'T',라우스:'T',라우스어:'T',
+  K:'K',KR:'K',kr:'K',한국:'K',한국어:'K',코리아:'K', // K=한국어 → 통역 불필요
   우즈벡:'U',우즈벡어:'U',우즈베키스탄:'U',우즈베키스탄어:'U',
   필리핀:'P',필리핀어:'P',
   R:'R',RU:'R',Ru:'R',ru:'R',KA:'R',Ka:'R',ka:'R',
@@ -1161,6 +1165,7 @@ const LANGS={
   C:{name:'캄보디아어',color:'#1d4ed8',bg:'#eff6ff',flag:'🇰🇭'},
   KZ:{name:'카자흐어',color:'#15803d',bg:'#f0fdf4',flag:'🇰🇿'},
   KY:{name:'키르기스어',color:'#15803d',bg:'#f0fdf4',flag:'🇰🇬'},
+  K:{name:'한국어',color:'#334155',bg:'#f1f5f9',flag:'🇰🇷'}, // v43: K=한국어, 통역 불필요
 };
 
 const HOSPITALS=[
@@ -1916,8 +1921,12 @@ function staffScheduleFit(st,d){
   }
   return{can:true,isMoved:false,fromH:null};
 }
+// Hospitals where max 1 interpreter per language regardless of patient count
+const MAX1_LANG_HOSPS=['슈퍼맨','명동','헤라','닥터송','아트라인','오아로'];
+// 브라운 minimum V interpreters to keep (don't send all away)
+const BROWN_MIN_V=2;
 function needCount(hospId,lang,count){
-  if(['명동','슈퍼맨'].includes(hospId))return 1;
+  if(MAX1_LANG_HOSPS.includes(hospId))return 1;
   if(hospId==='헤라'&&['U','KZ','KY'].includes(lang))return 1;
   if(['니어','헤라'].includes(hospId)&&lang==='R')return 1;
   if(hospId==='브라운'&&(lang==='V'||lang==='T'))return Math.min(2,MAX_STAFF_PER_LANG_PER_HOSP);
@@ -1997,6 +2006,11 @@ function parseDemandText(tr,hospId){
   if(!lm||!hospId)return false;
   const lc=resolveLang(lm[1]);
   if(!lc||parseInt(lm[2])<=0)return false;
+  // v43: K=한국어 — 통역 불필요, 배정 건너뜀 (미리보기에만 표시)
+  if(lc==='K'){
+    parsed.push({hospId,lang:'K',count:parseInt(lm[2]),times:parseTimes(lm[3]||''),noInterp:true});
+    return true;
+  }
   parsed.push({hospId,lang:lc,count:parseInt(lm[2]),times:parseTimes(lm[3]||'')});
   return true;
 }
@@ -2317,7 +2331,8 @@ function doGenerate(){
   availPool=shuffleSeeded(availPool,seed);
 
   const active=parsed.filter(p=>{
-    if(p.hospId.startsWith('__'))return true;
+    // v43 fix: unknown hospital names (__ prefix) → skip assignment entirely
+    if(p.hospId.startsWith('__'))return false;
     const h=HOSPITALS.find(h=>h.id===p.hospId);
     return h&&!h.closedDays.includes(selectedDay);
   });
@@ -2471,6 +2486,11 @@ function doGenerate(){
   const noInterpHosps=new Set();
 
   demand.forEach(d=>{
+    // v43: K=한국어 환자 — 통역 불필요, 배정 건너뜀
+    if(d.lang==='K'||d.noInterp){
+      results.push({demand:d,assigned:[],useEng:false,noStaff:false,koreanPatient:true});
+      return;
+    }
     const hosp=HOSPITALS.find(h=>h.id===d.hospId);
     let useEng=d.lang==='EN';
     const matchesFixedRule=(s)=>s.fixedRules&&s.fixedRules.some(r=>r.hospId===d.hospId&&((d.mergedRU||d.mergedEN)?d.mergeLangs.includes(r.lang):r.lang===d.lang)&&(!r.days||r.days.includes(selectedDay)));
@@ -2628,6 +2648,16 @@ function doGenerate(){
         workingAlba?-6:
         (s.preferBase&&d.hospId==='브라운')?-5:st.cur===d.hospId?0:!st.cur?1:2;
       if(isTeamLeader(s)&&!isMgr(s)&&!isLK(s)&&!isFR(s))sc+=12;
+      // v43: 브라운 min V guard — penalize moving 브라운 V/T speakers out if 브라운 V count would drop below BROWN_MIN_V
+      if(d.hospId!=='브라운'&&st.cur==='브라운'&&(s.langs.includes('V')||s.langs.includes('T'))&&!isLK(s)){
+        const brownVCount=results.filter(r=>r.demand.hospId==='브라운'&&(r.demand.lang==='V'||r.demand.lang==='T')).reduce((sum,r)=>sum+r.assigned.filter(a=>!a.isMoved).length,0);
+        if(brownVCount<=BROWN_MIN_V)sc+=8; // soft deterrent: prefer to stay at 브라운
+      }
+      // v43: 슈퍼맨(+other max1 hosps) hard cap: skip if same-lang already assigned there
+      if(MAX1_LANG_HOSPS.includes(d.hospId)){
+        const alreadyLangCount=results.filter(r=>r.demand.hospId===d.hospId&&r.demand.lang===d.lang).reduce((sum,r)=>sum+r.assigned.filter(a=>!a.isMoved).length,0);
+        if(alreadyLangCount>=1&&!isLK(s))sc=999;
+      }
       return{s,sc,canGo,isMoved,fromH,lk:isLK(s),fx:isFR(s),mgr:isMgr(s),rn};
     }).filter(x=>x.canGo&&x.sc<900).sort((a,b)=>a.sc-b.sc);
 
@@ -3256,6 +3286,8 @@ function renderResult(results,standby,warns,totalAvail,todayLeaves,noInterpHosps
       const movedOnly=s.slots.length>0&&s.slots.every(sl=>sl.isMoved);
       if(!movedOnly)pushStaffText(s.name,s.name);
     });
+    // v43: Korean patients — no interpreter needed
+    hr.filter(r=>r.koreanPatient).forEach(r=>{html+=`<div class="sline" style="background:#f1f5f9;border-left:3px solid #475569"><span class="sname jeong">🇰🇷 한국어</span><span class="sdetail smemo">${r.demand.count}명 — 통역 불필요</span></div>`;textLines.push(`한국어 ${r.demand.count}명 — 통역 불필요`);});
     hr.filter(r=>r.noStaff&&!supportCoversResultDemand(r.demand)).forEach(r=>{const l=LANGS[r.demand.lang]||{flag:'?',name:r.demand.lang};const langName=demandLangName(r);html+=`<div class="sline nostaf"><span class="sname jeong">⚠️ ${l.flag} ${r.demand.lang}</span><span class="sdetail smemo">배정 불가</span></div>`;textLines.push(`⚠️ ${langName} — 배정 불가`);});
     (supportersByDay[selectedDay]||[]).filter(s=>s.hospId===id).forEach(s=>{const l=s.lang?LANGS[s.lang]:null;html+=`<div class="sline" style="background:#fff7ed;border-left:3px solid #c2410c"><span class="sname" style="color:#c2410c">${s.name}</span><span class="sdetail"><span style="font-size:10px;background:#c2410c;color:#fff;padding:1px 6px;border-radius:8px;font-weight:700">🆘지원</span>${l?` <span style="font-size:10px;background:${l.bg};color:${l.color};padding:1px 6px;border-radius:8px;font-weight:700">${l.flag}${s.lang}</span>`:''}</span></div>`;textLines.push(s.lang?`${s.name} (${s.lang})`:s.name);});
     html+=`</div></div>`;textLines.push('');
@@ -4257,7 +4289,27 @@ function applyCellStyle(act,val){
   textarea.focus();
 }
 function autoResizeAllMeetingCells(){requestAnimationFrame(()=>{document.querySelectorAll('#meetingArea .cell-textarea').forEach(autoResizeMeetingCell);});}
-function printMeetings(){window.print();}
+function printMeetings(){
+  const monthKey=getActiveMeetingMonth();
+  const all=loadMeetings();
+  const meetings=all[monthKey]||[];
+  if(!meetings.length){alert('인쇄할 회의록이 없습니다.');return;}
+  const [yr,mo]=monthKey.split('-');
+  // Build combined HTML for all meetings in selected month
+  const blocksHtml=meetings.map(m=>generateMeetingExportHtml(m,monthKey)).join('<div style="page-break-after:always"></div>');
+  const combined=`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+<title>서울인력 회의록 ${yr}년 ${parseInt(mo,10)}월</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+<style>body{margin:0}@media print{body{margin:0}}</style>
+</head><body>${blocksHtml}</body></html>`;
+  const w=window.open('','_blank','noopener');
+  if(!w){alert('팝업이 차단되었습니다. 브라우저 팝업을 허용해주세요.');return;}
+  w.document.write(combined);
+  w.document.close();
+  // Auto-trigger print after fonts load
+  w.addEventListener('load',()=>w.print());
+  setTimeout(()=>w.print(),800);
+}
 
 // v41: Export meeting → Web Share (mobile picks Drive app) or download + open Drive in browser
 async function exportMeetingToDrive(monthKey,mIdx){
@@ -4963,6 +5015,7 @@ function helpQuickAsk(btn){
       <span class="fb-divider"></span>
       <button onmousedown="event.preventDefault();execFmt('removeFormat')" title="서식 제거">✕</button>
     </div>
+    <div class="meeting-footnote">* 회의 내용은 최대 1년간 저장됩니다</div>
     <div id="meetingArea"></div>
   </div>
 </div>
