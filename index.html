@@ -2277,15 +2277,17 @@ function staffScheduleFit(st,d){
   return{can:true,isMoved:false,fromH:null};
 }
 // Hospitals where max 1 interpreter per language regardless of patient count
-const MAX1_LANG_HOSPS=['슈퍼맨','명동','헤라','닥터송','아트라인','오아로'];
+const MAX1_LANG_HOSPS=['슈퍼맨','명동','헤라','닥터송','아트라인','오아로','니어']; // 니어: 언어당 최대 1명 (태국/베트남 포함)
 // 브라운 minimum V interpreters to keep (don't send all away)
 const BROWN_MIN_V=2;
 function needCount(hospId,lang,count){
   if(MAX1_LANG_HOSPS.includes(hospId))return 1;
-  if(hospId==='헤라'&&['U','KZ','KY'].includes(lang))return 1;
-  if(['니어','헤라'].includes(hospId)&&lang==='R')return 1;
-  if(hospId==='브라운'&&(lang==='V'||lang==='T'))return Math.min(2,MAX_STAFF_PER_LANG_PER_HOSP);
-  return Math.min(count>=18?3:count>=6?2:1,MAX_STAFF_PER_LANG_PER_HOSP);
+  if(hospId==='브라운'&&(lang==='V'||lang==='T'))return Math.min(count>=10?3:count>=6?2:1,MAX_STAFF_PER_LANG_PER_HOSP);
+  if(hospId==='브라운')return Math.min(count>=10?2:1,MAX_STAFF_PER_LANG_PER_HOSP);
+  // 평일: 10명 미만 → 1명, 10명 이상 → 2명
+  const isWE=selectedDay>=5;
+  if(!isWE)return count>=10?2:1;
+  return Math.min(count>=6?2:1,MAX_STAFF_PER_LANG_PER_HOSP);
 }
 
 // ══════════ DAY SELECT ══════════
@@ -2908,6 +2910,21 @@ function doGenerate(){
     if(['V','P'].includes(d.lang)&&tryMergeWithEnglish(d,d.lang))return;
     if(d.lang==='R'){
       const uD=rawDemand.find(x=>x.hospId===d.hospId&&x.lang==='U');
+      const kzD=rawDemand.find(x=>x.hospId===d.hospId&&x.lang==='KZ');
+      const kyD=rawDemand.find(x=>x.hospId===d.hospId&&x.lang==='KY');
+      const isNear=d.hospId==='니어';
+      if(isNear&&(uD||kzD||kyD)){
+        // 니어: U/KZ/KY 환자 모두 러시아어 통역 가능 → R 1명으로 합산 (count 무제한)
+        const extraCnt=(uD?.count||0)+(kzD?.count||0)+(kyD?.count||0);
+        const extraT=[...(uD?.times||[]),...(kzD?.times||[]),...(kyD?.times||[])];
+        demand.push({
+          ...d,count:d.count+extraCnt,needCount:1,mergedRU:true,mergeLangs:['R','U'],
+          times:[...new Set([...d.times,...extraT])].sort(),
+          allDay:d.allDay||(uD?.allDay||false)||(kzD?.allDay||false)||(kyD?.allDay||false),
+        });
+        skipMerge.add('니어_R');skipMerge.add('니어_U');skipMerge.add('니어_KZ');skipMerge.add('니어_KY');
+        return;
+      }
       if(uD&&(d.count+uD.count)<=7){
         demand.push({
           ...d,
@@ -2922,6 +2939,19 @@ function doGenerate(){
         skipMerge.add(`${d.hospId}_U`);
         return;
       }
+    }
+    // 니어 U/KZ/KY만 있고 R 없을 때 → R speakers로 커버 (lang을 R로 변환)
+    if(d.hospId==='니어'&&['U','KZ','KY'].includes(d.lang)){
+      const hasNearR=rawDemand.some(x=>x.hospId==='니어'&&x.lang==='R');
+      if(!hasNearR&&!skipMerge.has('니어_U_standalone')){
+        const allUKZKY=rawDemand.filter(x=>x.hospId==='니어'&&['U','KZ','KY'].includes(x.lang));
+        const totalCnt=allUKZKY.reduce((s,x)=>s+x.count,0);
+        const totalT=[...new Set(allUKZKY.flatMap(x=>x.times))].sort();
+        demand.push({...d,lang:'R',count:totalCnt,needCount:1,mergedRU:true,mergeLangs:['R','U'],times:totalT,allDay:allUKZKY.some(x=>x.allDay)});
+        skipMerge.add('니어_U');skipMerge.add('니어_KZ');skipMerge.add('니어_KY');skipMerge.add('니어_U_standalone');
+        return;
+      }
+      return; // already merged
     }
     demand.push(d);
   });
