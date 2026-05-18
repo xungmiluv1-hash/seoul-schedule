@@ -1001,6 +1001,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink)
 .bchat-input{flex:1;padding:8px 12px;border:1px solid var(--border2);border-radius:20px;font-family:'Noto Sans KR',sans-serif;font-size:13px;outline:none;}
 .bchat-input:focus{border-color:var(--pink);}
 .bchat-send{padding:8px 14px;background:var(--pink);border:none;border-radius:20px;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;font-family:'Noto Sans KR',sans-serif;}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.shake{animation:shake .35s;}
 </style>
 </head>
 <body>
@@ -1109,7 +1111,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--ink)
     <!-- STAFF TABLE -->
     <div class="staff-section">
       <div class="staff-sec-hdr">
-        <span class="staff-sec-title">👥 통역사·직원 명단</span>
+        <span class="staff-sec-title">👥 통역사·직원 명단 <span id="staffAuthBadge" onclick="toggleStaffAuthBadge()" style="display:inline-flex;align-items:center;gap:3px;font-size:10px;background:var(--navy-light);color:var(--navy2);border:1px solid var(--navy2);border-radius:10px;padding:2px 8px;font-weight:700;cursor:pointer;vertical-align:middle;margin-left:4px;">🔒 잠김</span></span>
         <div class="staff-search-wrap">
           <input class="staff-search" type="search" id="staffSearch" placeholder="직원 이름/언어 검색" autocomplete="new-password" autocapitalize="off" spellcheck="false" onfocus="sanitizeStaffSearch();renderStaffTable()" oninput="sanitizeStaffSearch();renderStaffTable()" onchange="sanitizeStaffSearch();renderStaffTable()">
           <button class="staff-search-btn" onclick="renderStaffTable()">검색</button>
@@ -1245,10 +1247,12 @@ N:1(11시)" rows="6"></textarea>
 
 <!-- EDIT AUTH MODAL -->
 <div class="modal-overlay" id="authOverlay">
-  <div class="modal">
-    <div class="modal-title">🌷 당신은 누구예요?</div>
-    <input class="modal-search" type="text" id="authNameInput" placeholder="이름" onkeydown="if(event.key==='Enter')confirmEditAuth()">
-    <div class="auth-error" id="authError">이름을 다시 확인해 주세요.</div>
+  <div class="modal" style="max-width:340px;text-align:center;border-top:4px solid var(--navy);">
+    <div style="font-size:32px;margin-bottom:8px;">🔐</div>
+    <div class="modal-title">직원 정보 수정 권한</div>
+    <div class="modal-date">직원·알바 정보를 수정하려면 비밀번호를 입력하세요</div>
+    <input class="modal-search" type="password" id="authNameInput" placeholder="비밀번호" onkeydown="if(event.key==='Enter')confirmEditAuth()" autocomplete="off" style="letter-spacing:3px;text-align:center;">
+    <div class="auth-error" id="authError">비밀번호가 맞지 않습니다.</div>
     <div class="modal-btns">
       <button class="modal-cancel" onclick="closeAuthModal()">취소</button>
       <button class="modal-save" onclick="confirmEditAuth()">✓ 확인</button>
@@ -1389,6 +1393,8 @@ const LANG_ALIAS={
   KZ:'KZ',KY:'KY',
   카자흐:'KZ',카자흐어:'KZ',카자흐스탄:'KZ',카자흐스탄어:'KZ',
   키르기스:'KY',키르기스어:'KY',키르기스스탄:'KY',키르기스스탄어:'KY',
+  KG:'R',Kg:'R',kg:'R', // KG(키르기스 국가코드) → 러시아어 통역사
+  La:'T',la:'T', // 라우스 La 표기 보완 (L/Lao/lao 이미 등록됨)
   Y:'MY',YM:'MY', // 약어 지원
 };
 const LANGS={
@@ -1473,10 +1479,10 @@ let STAFF=[
   {name:'아정',    langs:['I'],          days:[0,1,4,5,6],  type:'jeong',fixedRules:[],preferNear:true,neverBase:false},
   // Nepal
   {name:'빈우',    langs:['N'],          days:[0,1,4,5,6],  type:'jeong',fixedRules:[],preferNear:true,neverBase:false},
-  // Cambodia
-  {name:'김혜진',  langs:['C'],          days:[0,1,4,5,6],  type:'jeong',fixedRules:[],neverBase:false},
-  {name:'김예린',  langs:['C'],          days:[0,4,5,6],    type:'jeong',fixedRules:[{hospId:'명동',lang:'C'}],neverBase:false},
-  {name:'중순',    langs:['C','P','EN'], days:[2,4,5,6],    type:'jeong',fixedRules:[],neverBase:false,neverHosps:['헤라']},
+  // Cambodia — 니어 배정 불가
+  {name:'김혜진',  langs:['C'],          days:[0,1,4,5,6],  type:'jeong',fixedRules:[],neverBase:false,neverHosps:['니어']},
+  {name:'김예린',  langs:['C'],          days:[0,4,5,6],    type:'jeong',fixedRules:[{hospId:'명동',lang:'C'}],neverBase:false,neverHosps:['니어']},
+  {name:'중순',    langs:['C','P','EN'], days:[2,4,5,6],    type:'jeong',fixedRules:[],neverBase:false,neverHosps:['헤라','니어']},
   // Myanmar
   {name:'청하',    langs:['MY'],         days:[0,1,2,4,5,6],type:'jeong',fixedRules:[],neverBase:false},
   // Uzbekistan / Central Asia
@@ -1501,8 +1507,8 @@ let STAFF=[
   {name:'카잉툰',  langs:['MY'],         days:[0,4,5,6],type:'alba',fixedRules:[],neverBase:false},
   {name:'자리나',  langs:['U'],          days:[1,4,5],type:'alba',fixedRules:[],preferBase:true,neverBase:false,neverHosps:['슈퍼맨']},
   {name:'나르샤',  langs:['U'],          days:[5,6],type:'alba',fixedRules:[],preferBase:true,neverBase:false,neverHosps:['슈퍼맨']},
-  {name:'최나경',  langs:['C'],          days:[5,6],type:'alba',fixedRules:[],neverBase:false},
-  {name:'김미나',  langs:['C'],          days:[5,6],type:'alba',fixedRules:[],neverBase:false},
+  {name:'최나경',  langs:['C'],          days:[5,6],type:'alba',fixedRules:[],neverBase:false,neverHosps:['니어']},
+  {name:'김미나',  langs:['C'],          days:[5,6],type:'alba',fixedRules:[],neverBase:false,neverHosps:['니어']},
   {name:'아스미타',langs:['N'],          days:[5],  type:'alba',fixedRules:[],preferNear:true,neverBase:true},
 ];
 const STAFF_DEFAULT=JSON.parse(JSON.stringify(STAFF));
@@ -1526,12 +1532,17 @@ let editAuthorizedName=sessionStorage.getItem('seoulEditorName')||'';
 let pendingAuthAction=null,pendingAuthElement=null;
 
 // ══════════ INIT ══════════
+function toggleStaffAuthBadge(){
+  if(_staffEditUnlocked){_staffEditUnlocked=false;updateStaffAuthBadge();renderStaffTable();}
+  else{withEditAuth(()=>{});}
+}
 window.onload=async()=>{
   try{const s=localStorage.getItem('seoulLeave_v4');if(s)leaveData=JSON.parse(s);}catch(e){}
   loadChangeHistory();
   loadStaff();
   normalizeStaffRules();
   loadCloudConfig();
+  updateStaffAuthBadge();
   // v29: pull cloud FIRST so meetings/map/pinned start with synced data (prevents race overwrite)
   if(cloudReady){try{await pullCloudState({silent:true});}catch(e){}}
   renderCalendar();
@@ -1636,24 +1647,43 @@ function renderChangeHistory(){
   if(!changeHistory.length){el.innerHTML='<div class="cloud-history-item">아직 변경 기록이 없습니다.</div>';return;}
   el.innerHTML=changeHistory.slice(0,8).map(item=>`<div class="cloud-history-item"><b>${escHtml(item.action)}</b><div class="cloud-history-meta">${escHtml(item.who||'사용자')} · ${escHtml(changeTimeLabel(item.at))}</div></div>`).join('');
 }
-const EDITOR_NAMES=['한승미','황수미','홍주은','임소희','안성일'];
-// v22: auth disabled — all edits allowed without name check
-function hasEditAuth(){return true;}
-function withEditAuth(action,focusEl=null){action();}
+const STAFF_EDIT_PW='seoul';
+let _staffEditUnlocked=false;
+function hasEditAuth(){return _staffEditUnlocked;}
+function withEditAuth(action,focusEl=null){
+  if(_staffEditUnlocked){action();return;}
+  pendingAuthAction=action;pendingAuthElement=focusEl;
+  const inp=document.getElementById('authNameInput');
+  inp.value='';inp.classList.remove('shake');
+  document.getElementById('authError').classList.remove('show');
+  document.getElementById('authOverlay').classList.add('show');
+  setTimeout(()=>inp.focus(),80);
+}
 function requireEditAuthForElement(el){
   if(hasEditAuth())return;
   el.blur();
   withEditAuth(()=>setTimeout(()=>el.focus(),40),el);
 }
 function confirmEditAuth(){
-  const name=document.getElementById('authNameInput').value.trim();
-  if(!EDITOR_NAMES.includes(name)){
+  const inp=document.getElementById('authNameInput');
+  if(inp.value===STAFF_EDIT_PW){
+    _staffEditUnlocked=true;
+    closeAuthModal(true);
+    updateStaffAuthBadge();
+    renderStaffTable();
+  } else {
     document.getElementById('authError').classList.add('show');
-    return;
+    inp.classList.add('shake');
+    inp.value='';
+    setTimeout(()=>inp.classList.remove('shake'),400);
+    inp.focus();
   }
-  editAuthorizedName=name;
-  sessionStorage.setItem('seoulEditorName',name);
-  closeAuthModal(true);
+}
+function updateStaffAuthBadge(){
+  const b=document.getElementById('staffAuthBadge');
+  if(!b)return;
+  if(_staffEditUnlocked){b.textContent='🔓 수정가능';b.style.background='#f0fdf4';b.style.color='#15803d';b.style.borderColor='#86efac';}
+  else{b.textContent='🔒 잠김';b.style.background='';b.style.color='';b.style.borderColor='';}
 }
 function closeAuthModal(runPending=false){
   document.getElementById('authOverlay').classList.remove('show');
@@ -2939,8 +2969,8 @@ function doGenerate(){
     if(at===null&&bt!==null)return 1;
     const la=todayLocks.some(l=>l.hospId===a.hospId)?-3:0;
     const lb=todayLocks.some(l=>l.hospId===b.hospId)?-3:0;
-    const heraA=a.hospId==='헤라'&&a.lang==='I'?-2:0;
-    const heraB=b.hospId==='헤라'&&b.lang==='I'?-2:0;
+    const heraA=a.hospId==='헤라'&&['I','R'].includes(a.lang)?-2:0; // 헤라 I/R 우선 처리 (니어-R 배정 전에 헤라-R 먼저)
+    const heraB=b.hospId==='헤라'&&['I','R'].includes(b.lang)?-2:0;
     const nearA=a.hospId==='니어'&&['N','I','R'].includes(a.lang)?-1:0;
     const nearB=b.hospId==='니어'&&['N','I','R'].includes(b.lang)?-1:0;
     const pa=la||heraA||nearA||priorityOrder.indexOf(a.hospId);
@@ -3152,7 +3182,9 @@ function doGenerate(){
         englishByPhilippines?-7:
         englishOnlyTakingBilingual?3:
         workingAlba?-6:
-        (s.preferBase&&d.hospId==='브라운')?-5:st.cur===d.hospId?0:!st.cur?1:2;
+        (s.preferBase&&d.hospId==='브라운')?-5:
+        (s.preferNear&&d.hospId==='니어')?-4:
+        st.cur===d.hospId?0:!st.cur?(s.preferNear&&d.hospId!=='니어'?2:1):2;
       if(isTeamLeader(s)&&!isMgr(s)&&!isLK(s)&&!isFR(s))sc+=12;
       // v43: 브라운 min V guard — penalize moving 브라운 V/T speakers out if 브라운 V count would drop below BROWN_MIN_V
       if(d.hospId!=='브라운'&&st.cur==='브라운'&&(s.langs.includes('V')||s.langs.includes('T'))&&!isLK(s)){
