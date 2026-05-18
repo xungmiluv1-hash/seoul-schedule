@@ -1571,9 +1571,7 @@ window.onload=async()=>{
   selectScheduleDate(formatDateKey(defaultDate),{silent:true});
   document.getElementById('pasteArea').addEventListener('input',debounce(doParse,300));
   document.getElementById('lockArea').addEventListener('input',debounce(parseLocks,300));
-  document.getElementById('lockArea').addEventListener('focus',()=>requireEditAuthForElement(document.getElementById('lockArea')));
   document.getElementById('permanentLockArea').addEventListener('input',debounce(parsePermanentLocks,300));
-  document.getElementById('permanentLockArea').addEventListener('focus',()=>requireEditAuthForElement(document.getElementById('permanentLockArea')));
   document.getElementById('modalOverlay').addEventListener('click',e=>{if(e.target===document.getElementById('modalOverlay'))closeModal();});
   document.getElementById('authOverlay').addEventListener('click',e=>{if(e.target===document.getElementById('authOverlay'))closeAuthModal();});
   document.getElementById('supportLangOverlay').addEventListener('click',e=>{if(e.target===document.getElementById('supportLangOverlay'))closeSupportPopup();});
