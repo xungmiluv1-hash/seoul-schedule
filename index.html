@@ -3032,6 +3032,9 @@ function doGenerate(){
     ss[lk.name].slots.push(demandSlot(lk.hospId,lk.times,lk.times.length===0));
   });
   const assignedNames=new Set();
+  // R/U 그룹: 닐료·리솔랏·유이리나·디아나 — 같은 지점 중복 절대 불가
+  const RU_GROUP=new Set(['닐료','리솔랏','유이리나5','디아나']);
+  const ruGroupAtHosp={}; // hospId → [names]
   const isTeamLeader=(s)=>!!s?.mgrHosps?.length;
   const managerStartByHosp={};
   const teamLeadSplitWarns=new Set();
@@ -3115,6 +3118,8 @@ function doGenerate(){
       if(hardBase&&d.hospId!==hardBase)return{s,sc:999,canGo:false};
       if(s.neverBase&&d.hospId==='브라운')return{s,sc:999,canGo:false};
       if(s.neverHosps?.includes(d.hospId))return{s,sc:999,canGo:false};
+      // R/U 그룹: 같은 지점에 그룹원이 이미 있으면 절대 불가
+      if(RU_GROUP.has(s.name)&&(ruGroupAtHosp[d.hospId]?.length||0)>0)return{s,sc:999,canGo:false};
       // STRICT allDay enforcement: if person has allDay slot at OTHER hospital, block (unless that hospital closes early enough)
       const allDaySlot=(ss[s.name].slots||[]).find(sl=>sl.allDay&&sl.hospId!==d.hospId);
       if(allDaySlot){
@@ -3263,6 +3268,11 @@ function doGenerate(){
       ss[x.s.name].lastT=d.times.length?demandEndMin(d.hospId,d.times,false):(d.allDay?getClosingMin(d.hospId):(ss[x.s.name].lastT||toMin('10:00')));
       ss[x.s.name].slots.push(demandSlot(d.hospId,d.times,d.allDay));
       if(isTeamLeader(x.s)&&!x.isMoved)addManagerStart(d.hospId,x.s.name);
+      // R/U 그룹 위치 기록
+      if(RU_GROUP.has(x.s.name)){
+        if(!ruGroupAtHosp[d.hospId])ruGroupAtHosp[d.hospId]=[];
+        if(!ruGroupAtHosp[d.hospId].includes(x.s.name))ruGroupAtHosp[d.hospId].push(x.s.name);
+      }
     });
     results.push({demand:d,assigned:picked.map(x=>({
       name:x.s.name,type:x.s.type,langs:x.s.langs,
