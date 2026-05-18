@@ -3045,6 +3045,11 @@ function doGenerate(){
   todayLocks.forEach(lk=>{
     const st=availPool.find(s=>s.name===lk.name);
     if(isTeamLeader(st))addManagerStart(lk.hospId,lk.name);
+    // 특별배정 인원도 R/U 그룹 위치 등록
+    if(RU_GROUP.has(lk.name)&&activeHospIds.has(lk.hospId)){
+      if(!ruGroupAtHosp[lk.hospId])ruGroupAtHosp[lk.hospId]=[];
+      if(!ruGroupAtHosp[lk.hospId].includes(lk.name))ruGroupAtHosp[lk.hospId].push(lk.name);
+    }
   });
   // Track which hospitals got no interpreter (for memo)
   const noInterpHosps=new Set();
@@ -3084,6 +3089,14 @@ function doGenerate(){
       const rSpeakers=availPool.filter(s=>s.langs.includes('R')&&!assignedNames.has(s.name));
       if(rSpeakers.length){cands=[...cands,...rSpeakers];useEng=false;}
     }
+    // 헤라 R 보존: 헤라 外 U/KZ/KY 배정 시 R 가능 인원 절약 (헤라-R 미배정인 경우)
+    if(['U','KZ','KY'].includes(d.lang)&&d.hospId!=='헤라'&&d.hospId!=='니어'){
+      const heraRPending=demand.some(nd=>nd.hospId==='헤라'&&(nd.lang==='R'||nd.mergedRU)&&!results.some(r=>r.demand===nd&&r.assigned.length>0&&!r.noStaff));
+      if(heraRPending){
+        const pureU=cands.filter(s=>!s.langs.includes('R')&&canReuseAssigned(s));
+        if(pureU.length>0)cands=pureU; // 순수 U 전담 인원 우선, R 가능자 헤라용 절약
+      }
+    }
     // KZ/KY → U/R speakers
     if(!d.mergedRU&&['KZ','KY'].includes(d.lang)){
       cands=[...cands,...availPool.filter(s=>s.langs.includes('U')||s.langs.includes('R'))]
@@ -3118,8 +3131,8 @@ function doGenerate(){
       if(hardBase&&d.hospId!==hardBase)return{s,sc:999,canGo:false};
       if(s.neverBase&&d.hospId==='브라운')return{s,sc:999,canGo:false};
       if(s.neverHosps?.includes(d.hospId))return{s,sc:999,canGo:false};
-      // R/U 그룹: 같은 지점에 그룹원이 이미 있으면 절대 불가
-      if(RU_GROUP.has(s.name)&&(ruGroupAtHosp[d.hospId]?.length||0)>0)return{s,sc:999,canGo:false};
+      // R/U 그룹: 다른 그룹원이 이미 있으면 절대 불가 (같은 사람 reuse는 허용)
+      if(RU_GROUP.has(s.name)&&ruGroupAtHosp[d.hospId]?.some(n=>n!==s.name))return{s,sc:999,canGo:false};
       // STRICT allDay enforcement: if person has allDay slot at OTHER hospital, block (unless that hospital closes early enough)
       const allDaySlot=(ss[s.name].slots||[]).find(sl=>sl.allDay&&sl.hospId!==d.hospId);
       if(allDaySlot){
