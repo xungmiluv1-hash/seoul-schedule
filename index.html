@@ -1464,9 +1464,9 @@ let STAFF=[
   {name:'한미영',  langs:['T'],          days:[0,1,2,4,5,6],type:'jeong',fixedRules:[{hospId:'명동',lang:'T'}],neverBase:false,alwaysFixed:false,fixedBase:'명동'},
   {name:'최연이',  langs:['T'],          days:[0,1,2,4,5,6],type:'jeong',fixedRules:[{hospId:'다정한',lang:'T'}],neverBase:false,alwaysFixed:false},
   {name:'아루니',  langs:['T'],          days:[0,1,4,5,6],  type:'jeong',fixedRules:[{hospId:'아트라인',lang:'T'}],neverBase:false,alwaysFixed:true},
-  {name:'추티마',  langs:['T'],          days:[0,1,2,4,5,6],type:'jeong',fixedRules:[],neverBase:false},
-  {name:'시라다',  langs:['T'],          days:[0,2,4,5,6],  type:'jeong',fixedRules:[],neverBase:false},
-  {name:'아몬팀',  langs:['T'],          days:[0,1,5,6],    type:'jeong',fixedRules:[],neverBase:false},
+  {name:'추티마',  langs:['T'],          days:[0,1,2,4,5,6],type:'jeong',fixedRules:[],neverBase:false,neverHosps:['아트라인']},
+  {name:'시라다',  langs:['T'],          days:[0,2,4,5,6],  type:'jeong',fixedRules:[],neverBase:false,neverHosps:['아트라인']},
+  {name:'아몬팀',  langs:['T'],          days:[0,1,5,6],    type:'jeong',fixedRules:[],neverBase:false,neverHosps:['아트라인']},
   // Vietnam — 팀장
   {name:'황수미',  langs:['V'],          days:[0,1,4,5,6],  type:'jeong',fixedRules:[{hospId:'명동',lang:'V',days:[0,1,2,4]},{hospId:'헤라',lang:'V',days:[5,6]}],neverBase:false,mgrHosps:['헤라','니어']},
   {name:'홍주은',  langs:['V'],          days:[0,1,2,4,5],  type:'jeong',fixedRules:[],neverBase:false,mgrHosps:['브라운','안과','닥터송']},
@@ -1499,7 +1499,7 @@ let STAFF=[
   {name:'마이홍',  langs:['V'],          days:[5,6],type:'alba',fixedRules:[],neverBase:false},
   {name:'딘티안',  langs:['V'],          days:[5,6],type:'alba',fixedRules:[],neverBase:false},
   {name:'헬레나',  langs:['I'],          days:[3,4],type:'alba',fixedRules:[{hospId:'니어',lang:'I'}],preferNear:true,neverBase:false},
-  {name:'난타나',  langs:['T'],          days:[5,6],type:'alba',fixedRules:[],neverBase:false},
+  {name:'난타나',  langs:['T'],          days:[5,6],type:'alba',fixedRules:[],neverBase:false,neverHosps:['아트라인']},
   {name:'문지영',  langs:['T'],          days:[5,6],type:'alba',fixedRules:[{hospId:'브라운',lang:'T'}],neverBase:false,preferBase:true,fixedBase:'브라운'},
   {name:'항다르마',langs:['MG'],         days:[0,5,6],type:'alba',fixedRules:[],neverBase:true,preferNear:true},
   {name:'안예진',  langs:['YE'],         days:[5,6],type:'alba',fixedRules:[],neverBase:false},
@@ -3653,7 +3653,8 @@ function renderResult(results,standby,warns,totalAvail,todayLeaves,noInterpHosps
     else if(s.preferBase)home='브라운';
     else if(nearLang<brownLang||nearTotal<brownTotal)home='니어';
     if(isTeamLeaderName(s.name)){
-      const managedOpen=(s.mgrHosps||[]).filter(h=>!isHospitalClosedOnSelectedDay(h));
+      // 오늘 입력에 있는 관리 병원만 고려
+      const managedOpen=(s.mgrHosps||[]).filter(h=>!isHospitalClosedOnSelectedDay(h)&&activeHospIdsForHome.has(h));
       const openWithoutManager=managedOpen.find(h=>!(managerHomes[h]||[]).some(n=>n!==s.name));
       const currentHasOtherManager=(managerHomes[home]||[]).some(n=>n!==s.name);
       if(openWithoutManager&&(currentHasOtherManager||!managedOpen.includes(home)))home=openWithoutManager;
@@ -3712,7 +3713,11 @@ function renderResult(results,standby,warns,totalAvail,todayLeaves,noInterpHosps
 
   const renderHospitalIds=[...new Set(parsed.filter(p=>!p.hospId.startsWith('__')).map(p=>p.hospId))];
   Object.keys(deptMap).forEach(id=>{if(!renderHospitalIds.includes(id))renderHospitalIds.push(id);});
-  Object.keys(homeStandby).forEach(id=>{if(homeStandby[id]?.length&&!renderHospitalIds.includes(id))renderHospitalIds.push(id);});
+  // 입력에 없는 병원은 standby에도 표시하지 않음
+  Object.keys(homeStandby).forEach(id=>{
+    if(homeStandby[id]?.length&&!renderHospitalIds.includes(id)&&activeHospIdsForHome.has(id))
+      renderHospitalIds.push(id);
+  });
   renderHospitalIds.forEach((hid,hi)=>{
     const hosp=HOSPITALS.find(h=>h.id===hid);
     if(!hosp)return;
